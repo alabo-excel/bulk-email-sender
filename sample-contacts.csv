@@ -1,0 +1,8 @@
+email,first_name,last_name,company,industry,employees,country
+ada@example.com,Ada,Lovelace,Analytical Engines,Software,45,UK
+grace@example.com,Grace,Hopper,Compiler Co,Software,320,USA
+alan@example.com,Alan,Turing,Bletchley Labs,Security,12,UK
+katherine@example.com,Katherine,Johnson,Orbit Dynamics,Aerospace,890,USA
+linus@example.com,Linus,Torvalds,Kernel Works,Infrastructure,60,Finland
+not-an-email,Broken,Row,Bad Data Inc,Software,5,USA
+ada@example.com,Ada,Duplicate,Analytical Engines,Software,45,UK
