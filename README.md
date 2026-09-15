@@ -36,14 +36,47 @@ All credentials come from environment variables; nothing is stored in the app.
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `SMTP_HOST` | yes | e.g. `smtp.gmail.com` |
-| `SMTP_PORT` | no | defaults to `587` |
+| `SMTP_HOST` | yes | e.g. `smtp.zoho.com` |
+| `SMTP_PORT` | no | defaults to `587`; Zoho prefers `465` |
 | `SMTP_SECURE` | no | inferred from the port (`465` = implicit TLS) |
-| `SMTP_USER` | yes | SMTP username |
-| `SMTP_PASS` | yes | Gmail/Workspace needs an **App Password** |
+| `SMTP_USER` | yes | SMTP username — your full email address |
+| `SMTP_PASS` | yes | with 2FA on, an **app-specific password** |
 | `MAIL_FROM_NAME` | no | display name on the From header |
 | `MAIL_FROM_EMAIL` | no | defaults to `SMTP_USER` |
 | `MAIL_REPLY_TO` | no | where replies should land |
+
+### Zoho Mail
+
+```sh
+SMTP_HOST=smtp.zoho.com     # match your data centre — see below
+SMTP_PORT=465               # SSL; 587 also works for STARTTLS
+SMTP_USER=you@yourdomain.com
+SMTP_PASS=your-app-specific-password
+MAIL_FROM_EMAIL=you@yourdomain.com
+```
+
+Four Zoho-specific things trip people up:
+
+- **Region.** The host must match the data centre your account was created in:
+  `smtp.zoho.com` (US), `smtp.zoho.eu`, `smtp.zoho.in`, `smtp.zoho.com.au`,
+  `smtp.zoho.jp`, `smtp.zohocloud.ca`, `smtp.zoho.sa`. The wrong one fails
+  authentication even with perfect credentials.
+- **App password.** If two-factor auth is enabled, your account password is
+  rejected. Generate one under Zoho Accounts → Security → App Passwords and use
+  that as `SMTP_PASS`.
+- **From address.** Zoho only lets you send as the authenticated mailbox or an
+  alias you have already verified. Anything else comes back as a relaying
+  error.
+- **Plan.** Zoho's free tier has historically been webmail-only, with
+  IMAP/POP/SMTP reserved for paid plans. If auth fails on a free account with
+  otherwise-correct settings, that is the usual cause.
+
+Zoho enforces a daily sending cap that varies by plan and account age, and new
+accounts start low. Check the limit on your plan before a large run — blowing
+through it gets sending blocked for the rest of the day. Keep the delay slider
+at 1s or higher, and note that Zoho's terms cover mailbox sending, not bulk
+campaigns; their own guidance for volume outreach is to use Zoho Campaigns or
+ZeptoMail rather than a personal mailbox.
 
 ## Personalization
 
