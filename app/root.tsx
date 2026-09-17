@@ -1,3 +1,9 @@
+import { useEffect } from "react";
+import { ClerkProvider, UserButton, useUser } from "@clerk/react-router";
+import { clerkMiddleware, rootAuthLoader, getAuth } from "@clerk/react-router/server";
+import { Provider, useAtomValue } from "jotai";
+import { redirect } from "react-router";
+import { localStore, clearSession, userId, stateAtom } from "~/lib/store";
 import {
   isRouteErrorResponse,
   Link,
@@ -11,6 +17,16 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
+
+export const middleware: Route.MiddlewareFunction[] = [clerkMiddleware(), async (args, next) => {
+  const path = new URL(args.request.url).pathname;
+  if (!/^\/sign-(in|up)(\/|$)/.test(path) && !path.startsWith("/api/")) {
+    const auth = await getAuth(args);
+    if (!auth.userId) throw redirect("/sign-in");
+  }
+  return next();
+}];
+export const loader = (args: Route.LoaderArgs) => rootAuthLoader(args);
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -61,7 +77,16 @@ function NavItem({ to, children }: { to: string; children: React.ReactNode }) {
   );
 }
 
-export default function App() {
+export default function App({ loaderData }: Route.ComponentProps) {
+  return <ClerkProvider loaderData={loaderData} signInUrl="/sign-in" signUpUrl="/sign-up" afterSignOutUrl="/sign-in"><Provider store={localStore}><AppShell /></Provider></ClerkProvider>;
+}
+function AppShell() {
+  // Subscribe to the active storage atom so cross-tab changes stay current.
+  useAtomValue(stateAtom);
+  const { user, isLoaded } = useUser();
+  useEffect(() => {
+    if (isLoaded && userId() && user?.id !== userId()) clearSession();
+  }, [isLoaded, user?.id]);
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
@@ -75,15 +100,17 @@ export default function App() {
         </Link>
         <nav className="flex items-center gap-1">
           <NavItem to="/">Lists</NavItem>
+          <NavItem to="/activity">Activity</NavItem>
           <NavItem to="/settings">Settings</NavItem>
+          <UserButton />
         </nav>
       </header>
       <main className="flex-1">
         <Outlet />
       </main>
       <footer className="mt-12 border-t border-gray-200 pt-4 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
-        Uploaded lists and send history live in server memory only and are
-        cleared when the server restarts.
+        Lists, email history, and settings are saved in this browser for your account.
+        Clearing browser data removes them. Keep this tab open while sending.
       </footer>
     </div>
   );

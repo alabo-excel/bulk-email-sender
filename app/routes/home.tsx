@@ -1,9 +1,10 @@
+import { initializeLocalState } from "~/lib/store";
 import { Form, Link, data, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/home";
 import { parseCsv } from "~/lib/csv";
 import { guessEmailColumn } from "~/lib/contacts";
-import { deleteList, listLists, saveList } from "~/lib/store.server";
-import { readSmtpConfig } from "~/lib/mailer.server";
+import { deleteList, listLists, saveList } from "~/lib/store";
+import { readSmtpConfig } from "~/lib/store";
 
 const MAX_CSV_BYTES = 5 * 1024 * 1024;
 
@@ -17,7 +18,8 @@ export function meta(_: Route.MetaArgs) {
   ];
 }
 
-export function loader(_: Route.LoaderArgs) {
+export async function clientLoader(_: Route.ClientLoaderArgs) {
+  await initializeLocalState();
   const { issues } = readSmtpConfig();
   return {
     smtpReady: issues.length === 0,
@@ -31,7 +33,8 @@ export function loader(_: Route.LoaderArgs) {
   };
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function clientAction({ request }: Route.ClientActionArgs) {
+  await initializeLocalState();
   const formData = await request.formData();
 
   if (formData.get("intent") === "delete") {
@@ -212,3 +215,5 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
     </div>
   );
 }
+
+export function HydrateFallback() { return <p className="hint">Loading your local data…</p>; }

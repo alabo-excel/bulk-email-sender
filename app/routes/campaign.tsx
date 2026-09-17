@@ -1,3 +1,6 @@
+import { useAtomValue } from "jotai";
+import { passwordAtom } from "~/lib/store";
+import { initializeLocalState } from "~/lib/store";
 import { useMemo, useRef, useState } from "react";
 import { Form, Link, data, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/campaign";
@@ -16,15 +19,15 @@ import {
   type Operator,
 } from "~/lib/filters";
 import { extractTokens, renderTemplate } from "~/lib/template";
-import { readSmtpConfig } from "~/lib/mailer.server";
-import { sendCampaign } from "~/lib/send.server";
+import { readSmtpConfig } from "~/lib/store";
+import { sendCampaign } from "~/lib/send.client";
 import {
   addToSuppression,
   getList,
   getSentEmails,
   getSuppression,
   listReportsForList,
-} from "~/lib/store.server";
+} from "~/lib/store";
 
 const MAX_DELAY_MS = 60_000;
 
@@ -34,10 +37,11 @@ export function meta({ loaderData }: Route.MetaArgs) {
   ];
 }
 
-export function loader({ params }: Route.LoaderArgs) {
+export async function clientLoader({ params }: Route.ClientLoaderArgs) {
+  await initializeLocalState();
   const list = getList(params.listId);
   if (!list) {
-    throw data("Contact list not found. It may have been cleared on restart.", {
+    throw data("Contact list not found. It is not saved in this browser.", {
       status: 404,
     });
   }
@@ -70,7 +74,8 @@ export function loader({ params }: Route.LoaderArgs) {
   };
 }
 
-export async function action({ params, request }: Route.ActionArgs) {
+export async function clientAction({ params, request }: Route.ClientActionArgs) {
+  await initializeLocalState();
   const list = getList(params.listId);
   if (!list) throw data("Contact list not found.", { status: 404 });
 
@@ -106,7 +111,7 @@ export async function action({ params, request }: Route.ActionArgs) {
   addToSuppression(suppressionInput);
   const suppressed = new Set([...getSuppression(), ...suppressionInput]);
 
-  // Re-apply the same filters server-side; never trust a client-side count.
+  // Build the audience from this user’s locally saved contacts.
   const matched: Record<string, string>[] = [];
   const matchedRowNumbers: number[] = [];
   list.rows.forEach((row, index) => {
@@ -128,6 +133,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     );
   }
 
+  try {
   const result = await sendCampaign({
     listId: list.id,
     listName: list.name,
@@ -141,6 +147,7 @@ export async function action({ params, request }: Route.ActionArgs) {
   });
 
   return redirect(`/reports/${result.report.id}`);
+  } catch (error) { return fail(error instanceof Error ? error.message : "Sending failed."); }
 }
 
 function parseRules(raw: FormDataEntryValue | null): FilterRule[] {
@@ -174,6 +181,7 @@ export default function Campaign({
   actionData,
 }: Route.ComponentProps) {
   const { list, smtp, suggestedEmailColumn, suggestedNameColumn } = loaderData;
+  const unlocked = useAtomValue(passwordAtom);
   const navigation = useNavigation();
   const sending = navigation.state !== "idle";
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -204,7 +212,7 @@ export default function Campaign({
     });
     return buildAudience(matched, rowNumbers, {
       emailColumn,
-      suppressed: parseEmailList(suppression),
+      suppressed: new Set([...loaderData.suppression, ...parseEmailList(suppression)]),
       alreadySent: skipAlreadySent ? new Set(loaderData.alreadySent) : undefined,
     });
   }, [
@@ -215,6 +223,7 @@ export default function Campaign({
     suppression,
     skipAlreadySent,
     loaderData.alreadySent,
+    loaderData.suppression,
   ]);
 
   const sampleRow = audience.recipients[0]?.row ?? list.rows[0];
@@ -264,6 +273,7 @@ export default function Campaign({
 
   return (
     <Form method="post" className="space-y-6">
+      {!unlocked && <p className="card text-sm">Your sender is locked. <Link className="text-indigo-600 underline" to="/settings">Unlock in Settings</Link> before sending. Dry runs are still available.</p>}
       <input type="hidden" name="rules" value={JSON.stringify(rules)} />
       <input type="hidden" name="matchMode" value={matchMode} />
       <input type="hidden" name="emailColumn" value={emailColumn} />
@@ -696,3 +706,5 @@ Your Company · 123 Street, City, Country
 
 Reply "unsubscribe" and I'll remove you immediately.`;
 }
+
+export function HydrateFallback() { return <p className="hint">Loading your local data…</p>; }

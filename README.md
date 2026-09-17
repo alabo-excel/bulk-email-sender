@@ -1,164 +1,46 @@
 # Cold Email Sender
 
-Upload a CSV of contacts, pick who should hear from you based on the data in
-it, write one personalized template, and send over your own SMTP account.
-
-Built with React Router v8 (framework mode), Tailwind v4 and nodemailer.
-
-## How it works
-
-1. **Upload** a CSV (or paste one). Every column becomes a merge tag.
-2. **Pick the email column** — it is auto-detected, override it if the guess is
-   wrong.
-3. **Filter** the list with rules on any column — `industry equals SaaS`,
-   `employees greater than 50`, `last_contacted is empty` — combined with
-   match-all or match-any.
-4. **Compose** a subject and body using `{{column}}` tags, with a live preview
-   rendered against the first real recipient.
-5. **Send.** Every address gets its own individually addressed email, throttled
-   by a delay you choose. You land on a per-contact report.
+Sign in with Clerk, connect your sender mailbox, upload CSV contacts, and send personalized emails over SMTP. Built with React Router 8, Jotai, Tailwind, and Nodemailer.
 
 ## Setup
 
+Use Node 22.22+ (or a newer supported LTS release).
+
 ```sh
 npm install
-cp .env.example .env   # then fill in your SMTP credentials
+cp .env.example .env
+# Fill in VITE_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY from Clerk.
 npm run dev
 ```
 
-Open http://localhost:5173 and check **Settings** — it shows which variables
-are set, verifies the SMTP connection, and sends a test email before you touch
-a real list. `sample-contacts.csv` in the repo is a ready-made list to try.
+If `.env` already exists, add the Clerk keys without replacing it. Existing SMTP environment variables are no longer used. Configure your application's sign-in methods in the Clerk dashboard.
 
-### SMTP configuration
+Open http://localhost:5173, sign up, and complete sender onboarding. Enter your sender email, SMTP host, TLS port (465 or 587), and mailbox password/app password. Use the SMTP settings supplied by your mail provider. Settings lets you update credentials, verify the connection, or send a test email.
 
-All credentials come from environment variables; nothing is stored in the app.
+## Local state and credentials
 
-| Variable | Required | Notes |
-| --- | --- | --- |
-| `SMTP_HOST` | yes | e.g. `smtp.zoho.com` |
-| `SMTP_PORT` | no | defaults to `587`; Zoho prefers `465` |
-| `SMTP_SECURE` | no | inferred from the port (`465` = implicit TLS) |
-| `SMTP_USER` | yes | SMTP username — your full email address |
-| `SMTP_PASS` | yes | with 2FA on, an **app-specific password** |
-| `MAIL_FROM_NAME` | no | display name on the From header |
-| `MAIL_FROM_EMAIL` | no | defaults to `SMTP_USER` |
-| `MAIL_REPLY_TO` | no | where replies should land |
+Jotai persists lists, suppression addresses, email bodies, send reports, and sender settings in localStorage, separately for each Clerk user. Activity shows campaigns, dry runs, and test emails. Data stays in that browser; it does not sync between devices, and clearing browser data deletes it. Storage quota errors are surfaced instead of silently discarding saves.
 
-### Zoho Mail
+The mailbox password is encrypted using AES-256-GCM with a fresh salt and IV, and a key derived from a separate vault passphrase using PBKDF2-SHA-256 (600,000 iterations). The passphrase/key is not persisted. After refreshing, unlock the sender in Settings before sending. Forgetting the passphrase requires re-entering mailbox credentials. Signing out clears the unlocked password from app memory.
 
-```sh
-SMTP_HOST=smtp.zoho.com     # match your data centre — see below
-SMTP_PORT=465               # SSL; 587 also works for STARTTLS
-SMTP_USER=you@yourdomain.com
-SMTP_PASS=your-app-specific-password
-MAIL_FROM_EMAIL=you@yourdomain.com
-```
+Encryption protects a copied localStorage password; it does not protect against malicious scripts executing in an unlocked page. Other local activity data is not encrypted. SMTP credentials are sent to the authenticated server endpoint only when needed to verify or send; they are not stored there. Deploy with HTTPS. SMTP requires TLS and public IPv4-resolvable mail servers; private network SMTP hosts are rejected.
 
-Four Zoho-specific things trip people up:
+## Sending
 
-- **Region.** The host must match the data centre your account was created in:
-  `smtp.zoho.com` (US), `smtp.zoho.eu`, `smtp.zoho.in`, `smtp.zoho.com.au`,
-  `smtp.zoho.jp`, `smtp.zohocloud.ca`, `smtp.zoho.sa`. The wrong one fails
-  authentication even with perfect credentials.
-- **App password.** If two-factor auth is enabled, your account password is
-  rejected. Generate one under Zoho Accounts → Security → App Passwords and use
-  that as `SMTP_PASS`.
-- **From address.** Zoho only lets you send as the authenticated mailbox or an
-  alias you have already verified. Anything else comes back as a relaying
-  error.
-- **Plan.** Zoho's free tier has historically been webmail-only, with
-  IMAP/POP/SMTP reserved for paid plans. If auth fails on a free account with
-  otherwise-correct settings, that is the usual cause.
+Upload `sample-contacts.csv` or your own CSV, choose the email column, filter contacts, and compose a template. `{{first_name|there}}` inserts a value with a fallback. Preview and dry runs do not send mail. Invalid, duplicate, suppressed, and optionally previously sent addresses are skipped.
 
-Zoho enforces a daily sending cap that varies by plan and account age, and new
-accounts start low. Check the limit on your plan before a large run — blowing
-through it gets sending blocked for the rest of the day. Keep the delay slider
-at 1s or higher, and note that Zoho's terms cover mailbox sending, not bulk
-campaigns; their own guidance for volume outreach is to use Zoho Campaigns or
-ZeptoMail rather than a personal mailbox.
-
-## Personalization
-
-`{{column_name}}` is replaced per contact. Matching ignores case, spaces,
-underscores and hyphens, so `{{first name}}`, `{{First_Name}}` and
-`{{firstname}}` all hit a `First Name` column.
-
-Add a fallback after a pipe for contacts with a blank cell:
-
-```
-Hi {{first_name|there}}, I saw {{company|your team}} is hiring.
-```
-
-A tag that matches no column is flagged in the composer and, if you send
-anyway, is left in the text verbatim rather than silently blanked.
-
-## Who actually gets the email
-
-Before sending, rows are dropped — and itemized in the report — when they are:
-
-- not a valid email address,
-- a duplicate of an earlier row in the same list,
-- on the suppression list (per-campaign box, or added in an earlier run),
-- already emailed from this list (toggleable, so follow-ups are opt-in).
-
-Filters are re-evaluated on the server at send time; the browser's recipient
-count is only a preview.
-
-**Dry run** renders every email and produces a full report without opening an
-SMTP connection. Use it on a new template first.
-
-## What this deliberately does not do
-
-- **No persistence.** Lists, reports and the suppression list live in server
-  memory and vanish on restart. Reach for a database before using it for
-  anything you need a record of.
-- **No background queue.** A send runs inside the request, so the browser tab
-  has to stay open until it finishes. At the default 1s delay that is roughly
-  one minute per 60 contacts; for lists in the thousands, raise the delay and
-  send in batches, or move sending to a job queue.
-- **No open/click tracking or inbox management.**
-
-## Sending responsibly
-
-Cold email is regulated — CAN-SPAM in the US, GDPR/PECR in the EU and UK, CASL
-in Canada, and others. At minimum you generally need a truthful From and
-subject, a real postal address, and a working opt-out that you honor promptly.
-The footer field is prefilled as a reminder; the suppression list is how you
-honor opt-outs. Sending bulk mail through a personal mailbox can also get the
-account rate-limited or suspended — check your provider's limits and use a
-dedicated sending domain for volume.
-
-## Project layout
-
-```
-app/
-  lib/
-    csv.ts             RFC 4180-ish parser, delimiter auto-detection
-    contacts.ts        email column detection, validation, dedupe, audience
-    filters.ts         filter rules and evaluation
-    template.ts        {{tag}} rendering, text → HTML
-    mailer.server.ts   SMTP config from env, transport, verification
-    send.server.ts     campaign loop, throttling, per-contact results
-    store.server.ts    in-memory lists, reports, suppression
-  routes/
-    home.tsx           upload + list index
-    campaign.tsx       mapping, filters, composer, send
-    report.tsx         per-contact send report
-    settings.tsx       SMTP status, verify, test email
-```
+Keep the tab open while sending. Each recipient's rendered email and result is saved locally. An interrupted request is recorded as unconfirmed; check your mailbox before retrying because a network failure can occur after delivery. There is no background queue or open/click tracking.
 
 ## Commands
 
 ```sh
-npm run dev        # dev server
-npm run typecheck  # typegen + tsc
-npm run build      # production build
-npm start          # serve the build
+npm run dev
+npm run typecheck
+npm test
+npm run build
+npm start
 ```
 
-## Deployment
+Production builds go to `build/client` and `build/server`. Configure Clerk production keys for your deployed domain and serve over HTTPS.
 
-`npm run build` emits `build/client` and `build/server`; `npm start` serves
-them. A `Dockerfile` is included. Set the same SMTP variables in whatever
-environment you deploy to.
+Integration references: [Clerk React Router](https://clerk.com/docs/react-router/getting-started/quickstart) and [Jotai storage](https://jotai.org/docs/utilities/storage).

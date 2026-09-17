@@ -1,101 +1,29 @@
-import nodemailer, { type Transporter } from "nodemailer";
+import nodemailer from "nodemailer";
+import { lookup } from "node:dns/promises";
+import { BlockList } from "node:net";
+import { isValidEmail } from "./contacts";
 
-export type SmtpConfig = {
-  host: string;
-  port: number;
-  secure: boolean;
-  user: string;
-  pass: string;
-  fromName: string;
-  fromEmail: string;
-  replyTo: string;
-};
+const privateNetworks = new BlockList();
+for (const [address, prefix] of [["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8], ["169.254.0.0", 16], ["172.16.0.0", 12], ["192.0.0.0", 24], ["192.0.2.0", 24], ["192.168.0.0", 16], ["198.18.0.0", 15], ["198.51.100.0", 24], ["203.0.113.0", 24], ["224.0.0.0", 4], ["240.0.0.0", 4]] as const) privateNetworks.addSubnet(address, prefix);
 
-export type ConfigIssue = { key: string; message: string };
-
-export function readSmtpConfig(): {
-  config: SmtpConfig | null;
-  issues: ConfigIssue[];
-} {
-  const env = process.env;
-  const issues: ConfigIssue[] = [];
-
-  const host = env.SMTP_HOST?.trim() ?? "";
-  const user = env.SMTP_USER?.trim() ?? "";
-  const pass = env.SMTP_PASS ?? "";
-  const fromEmail = (env.MAIL_FROM_EMAIL ?? user).trim();
-  const portRaw = env.SMTP_PORT?.trim() ?? "587";
-  const port = Number(portRaw);
-
-  if (!host) issues.push({ key: "SMTP_HOST", message: "Missing SMTP host." });
-  if (!user) issues.push({ key: "SMTP_USER", message: "Missing SMTP username." });
-  if (!pass) issues.push({ key: "SMTP_PASS", message: "Missing SMTP password." });
-  if (!Number.isInteger(port) || port <= 0) {
-    issues.push({ key: "SMTP_PORT", message: `"${portRaw}" is not a valid port.` });
-  }
-  if (!fromEmail) {
-    issues.push({
-      key: "MAIL_FROM_EMAIL",
-      message: "Missing sender address (defaults to SMTP_USER).",
-    });
-  }
-
-  if (issues.length > 0) return { config: null, issues };
-
-  return {
-    config: {
-      host,
-      port,
-      // Port 465 is implicit TLS; 587/25 upgrade via STARTTLS.
-      secure: env.SMTP_SECURE ? env.SMTP_SECURE === "true" : port === 465,
-      user,
-      pass,
-      fromName: env.MAIL_FROM_NAME?.trim() || "",
-      fromEmail,
-      replyTo: env.MAIL_REPLY_TO?.trim() || "",
-    },
-    issues,
-  };
+export type SenderInput = { email: string; name: string; host: string; port: number; password: string };
+export function validateSender(value: unknown): value is SenderInput {
+  if (!value || typeof value !== "object") return false;
+  const sender = value as SenderInput;
+  return typeof sender.email === "string" && sender.email.length <= 254 && isValidEmail(sender.email)
+    && typeof sender.name === "string" && sender.name.length <= 200 && !/[\r\n]/.test(sender.name)
+    && typeof sender.host === "string" && sender.host.length <= 253 && /^[a-zA-Z0-9.-]+$/.test(sender.host)
+    && [465, 587].includes(sender.port)
+    && typeof sender.password === "string" && sender.password.length > 0 && sender.password.length <= 4096;
 }
-
-export function formatFrom(config: SmtpConfig): string {
-  return config.fromName
-    ? `"${config.fromName.replace(/"/g, "")}" <${config.fromEmail}>`
-    : config.fromEmail;
-}
-
-export function createTransport(config: SmtpConfig): Transporter {
+export async function createTransport(sender: SenderInput) {
+  const addresses = await lookup(sender.host, { family: 4, all: true });
+  if (!addresses.length || addresses.some(({ address }) => privateNetworks.check(address))) throw new Error("SMTP host must resolve to a public mail server.");
   return nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    auth: { user: config.user, pass: config.pass },
-    // One connection reused for the whole run, throttled by our own delay.
-    pool: true,
-    maxConnections: 1,
+    host: addresses[0].address, port: sender.port, secure: sender.port === 465,
+    requireTLS: true, tls: { servername: sender.host, minVersion: "TLSv1.2" },
+    auth: { user: sender.email, pass: sender.password },
+    connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 30_000,
+    disableFileAccess: true, disableUrlAccess: true,
   });
-}
-
-export async function verifyConnection(): Promise<{
-  ok: boolean;
-  message: string;
-}> {
-  const { config, issues } = readSmtpConfig();
-  if (!config) {
-    return { ok: false, message: issues.map((i) => i.message).join(" ") };
-  }
-  const transport = createTransport(config);
-  try {
-    await transport.verify();
-    return { ok: true, message: `Connected to ${config.host}:${config.port}.` };
-  } catch (error) {
-    return { ok: false, message: describeError(error) };
-  } finally {
-    transport.close();
-  }
-}
-
-export function describeError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
 }

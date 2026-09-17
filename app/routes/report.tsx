@@ -1,16 +1,18 @@
+import { initializeLocalState } from "~/lib/store";
 import { useState } from "react";
 import { Link, data } from "react-router";
 import type { Route } from "./+types/report";
-import { getReport } from "~/lib/store.server";
+import { getReport } from "~/lib/store";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Send report · Cold Email Sender" }];
 }
 
-export function loader({ params }: Route.LoaderArgs) {
+export async function clientLoader({ params }: Route.ClientLoaderArgs) {
+  await initializeLocalState();
   const report = getReport(params.reportId);
   if (!report) {
-    throw data("Report not found. Reports are cleared when the server restarts.", {
+    throw data("Report not found. This report is not saved in this browser.", {
       status: 404,
     });
   }
@@ -46,7 +48,7 @@ export default function Report({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link to={`/lists/${report.listId}`} className="hint hover:underline">
+        <Link to={report.listId === "test" ? "/activity" : `/lists/${report.listId}`} className="hint hover:underline">
           ← Back to {report.listName}
         </Link>
         <h1 className="mt-1 text-xl font-semibold tracking-tight">
@@ -115,6 +117,7 @@ export default function Report({ loaderData }: Route.ComponentProps) {
                   </td>
                   <td className="px-4 py-2 text-gray-600 dark:text-gray-400">
                     {attempt.error ?? attempt.reason ?? attempt.subject}
+                    {attempt.body && <details className="mt-2"><summary className="cursor-pointer text-indigo-600">View email</summary><p className="mt-2 font-medium">{attempt.subject}</p><p className="mt-1 whitespace-pre-wrap">{attempt.body}</p></details>}
                   </td>
                 </tr>
               ))}
@@ -156,3 +159,5 @@ function Stat({
     </div>
   );
 }
+
+export function HydrateFallback() { return <p className="hint">Loading your local data…</p>; }

@@ -6,12 +6,15 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "node --env-file-if-exists=.env ./node_modules/.bin/react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "react-router typegen && tsc",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
+    "@clerk/react-router": "^3.6.24",
     "@react-router/node": "^8",
     "@react-router/serve": "^8",
     "isbot": "^5.1.36",
+    "jotai": "^3.0.0",
     "nodemailer": "^10.0.10",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
