@@ -2,6 +2,14 @@
 
 Sign in with Clerk, connect your sender mailbox, upload CSV contacts, and send personalized emails over SMTP. Built with React Router 8, Jotai, Tailwind, and Nodemailer.
 
+This is a small personal outreach tool, not a bulk email platform. Campaigns are capped at 20 recipients, state lives in your browser, and sending runs in an open tab. For volume, deliverability reporting, or durable records, use a real ESP.
+
+## Sending responsibly
+
+Cold email is regulated — CAN-SPAM in the US, GDPR/PECR in the EU and UK, CASL in Canada, and others. At minimum you generally need a truthful From and subject line, a real postal address, and a working opt-out that you honor promptly. The footer field exists for that; the suppression list is how you honor opt-outs.
+
+Sending bulk mail through a personal mailbox also gets accounts rate-limited or suspended, and both supported providers point volume senders elsewhere. Zoho's terms cover mailbox sending rather than campaigns (they direct you to Zoho Campaigns or ZeptoMail), and Gmail enforces a daily cap well below what sustained outreach implies. Check your plan's limit before a run, and use a dedicated sending domain for anything ongoing.
+
 ## Setup
 
 Use Node 22.22+ (or a newer supported LTS release).
@@ -46,3 +54,7 @@ npm start
 Production builds go to `build/client` and `build/server`. Configure Clerk production keys for your deployed domain and serve over HTTPS.
 
 Integration references: [Clerk React Router](https://clerk.com/docs/react-router/getting-started/quickstart) and [Jotai storage](https://jotai.org/docs/utilities/storage).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
