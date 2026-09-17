@@ -1,3 +1,4 @@
+import { isPublicAuthRoute } from "~/lib/auth-routes";
 import { useEffect } from "react";
 import { ClerkProvider, UserButton, useUser } from "@clerk/react-router";
 import { clerkMiddleware, rootAuthLoader, getAuth } from "@clerk/react-router/server";
@@ -20,7 +21,7 @@ import "./app.css";
 
 export const middleware: Route.MiddlewareFunction[] = [clerkMiddleware(), async (args, next) => {
   const path = new URL(args.request.url).pathname;
-  if (!/^\/sign-(in|up)(\/|$)/.test(path) && !path.startsWith("/api/")) {
+  if (!isPublicAuthRoute(path) && !path.startsWith("/api/")) {
     const auth = await getAuth(args);
     if (!auth.userId) throw redirect("/sign-in");
   }
@@ -82,8 +83,9 @@ export default function App({ loaderData }: Route.ComponentProps) {
 }
 function AppShell() {
   // Subscribe to the active storage atom so cross-tab changes stay current.
-  useAtomValue(stateAtom);
+  const { sender } = useAtomValue(stateAtom);
   const { user, isLoaded } = useUser();
+  const isOnboarded = isLoaded && user?.id === userId() && Boolean(sender);
   useEffect(() => {
     if (isLoaded && userId() && user?.id !== userId()) clearSession();
   }, [isLoaded, user?.id]);
@@ -98,12 +100,16 @@ function AppShell() {
             Cold Email Sender
           </span>
         </Link>
-        <nav className="flex items-center gap-1">
-          <NavItem to="/">Lists</NavItem>
-          <NavItem to="/activity">Activity</NavItem>
-          <NavItem to="/settings">Settings</NavItem>
+        <div className="flex items-center gap-3">
+          {isOnboarded && (
+            <nav aria-label="Main navigation" className="flex items-center gap-1">
+              <NavItem to="/">Lists</NavItem>
+              <NavItem to="/activity">Activity</NavItem>
+              <NavItem to="/settings">Settings</NavItem>
+            </nav>
+          )}
           <UserButton />
-        </nav>
+        </div>
       </header>
       <main className="flex-1">
         <Outlet />

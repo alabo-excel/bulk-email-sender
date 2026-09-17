@@ -5,6 +5,11 @@ import { useNavigate } from "react-router";
 import { decryptPassword, encryptPassword } from "~/lib/vault";
 import { stateAtom, passwordAtom, updateState, userId, smtpRequest } from "~/lib/store";
 
+const SMTP_PROVIDERS = {
+  zoho: { host: "smtp.zoho.com", port: 465 },
+  gmail: { host: "smtp.gmail.com", port: 465 },
+} as const;
+
 export function SenderSettings({ onboarding = false }: { onboarding?: boolean }) {
   const { sender, suppression } = useAtomValue(stateAtom);
   const [unlocked, setUnlocked] = useAtom(passwordAtom);
@@ -21,6 +26,9 @@ export function SenderSettings({ onboarding = false }: { onboarding?: boolean })
         const values = new FormData(form);
         setBusy(true); setMessage("");
         try {
+          const provider = String(values.get("provider"));
+          if (provider !== "zoho" && provider !== "gmail") throw new Error("Choose Zoho or Gmail.");
+          const connection = SMTP_PROVIDERS[provider];
           const password = String(values.get("password"));
           const passphrase = String(values.get("passphrase"));
           if (passphrase !== values.get("confirm")) throw new Error("Vault passphrases do not match.");
@@ -29,7 +37,7 @@ export function SenderSettings({ onboarding = false }: { onboarding?: boolean })
           if (owner !== userId()) throw new Error("Account changed. Please try again.");
           updateState((state) => ({ ...state, sender: {
             email: String(values.get("email")).trim(), name: String(values.get("name")).trim(),
-            host: String(values.get("host")).trim(), port: Number(values.get("port")), password: encrypted,
+            host: connection.host, port: connection.port, password: encrypted,
           } }));
           setUnlocked(password);
           form.reset();
@@ -40,8 +48,14 @@ export function SenderSettings({ onboarding = false }: { onboarding?: boolean })
       }}>
         <Field label="Sender email" name="email" type="email" defaultValue={sender?.email} autoComplete="email" required />
         <Field label="Sender name (optional)" name="name" defaultValue={sender?.name} autoComplete="name" />
-        <Field label="SMTP host" name="host" placeholder="smtp.zoho.com" defaultValue={sender?.host} required />
-        <label className="label">SMTP connection<select name="port" className="field mt-1" defaultValue={sender?.port ?? 465}><option value="465">465 — TLS</option><option value="587">587 — STARTTLS</option></select></label>
+        <label className="label block">
+          Email provider
+          <select name="provider" className="field mt-1" defaultValue={sender?.host === SMTP_PROVIDERS.gmail.host ? "gmail" : "zoho"} required>
+            <option value="zoho">Zoho</option>
+            <option value="gmail">Gmail</option>
+          </select>
+        </label>
+        <p className="hint">Your secure SMTP connection is configured automatically for the selected provider.</p>
         <Field label="Email password / app password" name="password" type="password" autoComplete="new-password" required />
         <Field label="Vault passphrase" name="passphrase" type="password" autoComplete="new-password" minLength={12} required />
         <Field label="Confirm vault passphrase" name="confirm" type="password" autoComplete="new-password" minLength={12} required />

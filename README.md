@@ -15,7 +15,7 @@ npm run dev
 
 If `.env` already exists, add the Clerk keys without replacing it. Existing SMTP environment variables are no longer used. Configure your application's sign-in methods in the Clerk dashboard.
 
-Open http://localhost:5173, sign up, and complete sender onboarding. Enter your sender email, SMTP host, TLS port (465 or 587), and mailbox password/app password. Use the SMTP settings supplied by your mail provider. Settings lets you update credentials, verify the connection, or send a test email.
+Open http://localhost:5173, sign up, and complete sender onboarding. Enter your sender email, select Zoho or Gmail, and enter your mailbox password/app password. The app automatically uses `smtp.zoho.com` for Zoho or `smtp.gmail.com` for Gmail, with TLS on port 465. The Zoho preset uses the US server. Settings lets you update credentials, verify the connection, or send a test email.
 
 ## Local state and credentials
 
