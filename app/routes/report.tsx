@@ -72,7 +72,7 @@ export default function Report({ loaderData }: Route.ComponentProps) {
       </div>
 
       <div className="card overflow-hidden p-0">
-        <div className="flex flex-wrap gap-1 border-b border-slate-200 p-3 dark:border-slate-800">
+        <div className="flex flex-wrap gap-1 p-3">
           {(["all", "sent", "failed", "skipped"] as const).map((option) => (
             <button
               key={option}
@@ -99,7 +99,7 @@ export default function Report({ loaderData }: Route.ComponentProps) {
                 <th className="px-4 py-2 font-medium">Detail</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="rows">
               {visible.map((attempt, index) => (
                 <tr key={`${attempt.email}-${index}`}>
                   <td className="px-4 py-2 tabular-nums text-slate-500">

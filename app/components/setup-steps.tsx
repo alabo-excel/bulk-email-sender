@@ -18,7 +18,7 @@ export function SetupSteps({ current }: { current: 1 | 2 | 3 }) {
               className="flex items-center gap-2 text-sm">
               <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                 state === "upcoming"
-                  ? "border border-slate-300 text-slate-500 dark:border-slate-700 dark:text-slate-400"
+                  ? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
                   : "bg-primary text-white"
               }`}>{step}</span>
               <span className={state === "current"

@@ -51,7 +51,7 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
   );
   const passwordCopy = PASSWORD_COPY[provider];
 
-  /** Validates one field against the whole form, so confirm can see passphrase. */
+  /** Validates one field against the whole form, so each rule can see siblings. */
   function checkField(name: string, values: FormData): string {
     const value = String(values.get(name) ?? "");
     const password = String(values.get("password") ?? "");
@@ -75,10 +75,6 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
         return value.length < MIN_PASSPHRASE
           ? `Use at least ${MIN_PASSPHRASE} characters.`
           : "";
-      case "confirm":
-        if (!settingPassword) return "";
-        return value === String(values.get("passphrase") ?? "")
-          ? "" : "This does not match the vault passphrase above.";
       default:
         return "";
     }
@@ -103,7 +99,7 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
       const values = new FormData(form);
 
       const found: FieldErrors = {};
-      for (const name of ["email", "password", "passphrase", "confirm"]) {
+      for (const name of ["email", "password", "passphrase"]) {
         const message = checkField(name, values);
         if (message) found[name] = message;
       }
@@ -151,9 +147,9 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
     }}>
       <ErrorSummary ref={summaryRef} errors={errors} />
 
-      <Field label="Sender email" name="email" type="email" defaultValue={sender?.email} autoComplete="email"
+      <Field label="Sender email" name="email" type="email" required defaultValue={sender?.email} autoComplete="email"
         onBlur={validateOnBlur} error={errors.email} />
-      <Field label="Sender name (optional)" name="name" defaultValue={sender?.name} autoComplete="name" />
+      <Field label="Sender name" name="name" defaultValue={sender?.name} autoComplete="name" />
       <div>
         <label className="label block" htmlFor="provider">Email provider</label>
         <select id="provider" name="provider" className="field" aria-describedby="provider-hint"
@@ -167,19 +163,16 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
         </select>
         <p id="provider-hint" className="hint mt-1">Your secure SMTP connection is configured automatically for the selected provider.</p>
       </div>
-      <Field label={passwordCopy.label} name="password" type="password" autoComplete="new-password"
+      <Field label={passwordCopy.label} name="password" type="password" autoComplete="new-password" revealable required={!saved}
         placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.password}
         hint={saved
           ? "Saved and encrypted. Leave blank to keep it, or type a new one to replace it."
           : passwordCopy.hint} />
-      <Field label="Vault passphrase" name="passphrase" type="password" autoComplete="new-password"
+      <Field label="Vault passphrase" name="passphrase" type="password" autoComplete="new-password" revealable required={!saved}
         placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.passphrase}
         hint={saved
           ? "Only needed if you are replacing the password above. The passphrase itself is never stored."
-          : `At least ${MIN_PASSPHRASE} characters. You’ll use it to unlock sending after a refresh. It is never saved; if you forget it, enter your sender credentials again.`} />
-      <Field label="Confirm vault passphrase" name="confirm" type="password" autoComplete="new-password"
-        placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.confirm} />
-
+          : `At least ${MIN_PASSPHRASE} characters. Use Show to check it before saving — it is never stored, so if you forget it you will need to enter your sender credentials again.`} />
       <button className="btn-primary" disabled={busy}>{busy ? "Saving…" : onboarding ? "Save and continue" : "Save sender"}</button>
     </form>
   </section>;

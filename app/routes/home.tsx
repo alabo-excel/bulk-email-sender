@@ -160,7 +160,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
 
       <div className="space-y-6">
         {!loaderData.smtpReady && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+          <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
             <p className="font-medium">SMTP is not configured yet.</p>
             <p className="mt-1">
               You can still upload and preview. Add credentials in{" "}
@@ -179,7 +179,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
           {loaderData.lists.length === 0 ? (
             <p className="hint mt-3">Nothing uploaded yet.</p>
           ) : (
-            <ul className="mt-3 divide-y divide-slate-100 dark:divide-slate-800">
+            <ul className="mt-3 space-y-1">
               {loaderData.lists.map((list) => (
                 <li
                   key={list.id}

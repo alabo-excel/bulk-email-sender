@@ -1,48 +1,103 @@
 @import "tailwindcss";
 
-/* Design system: ui-ux-pro-max — "Minimalism & Swiss Style" for authenticated
-   dashboards/professional tools, "Dashboard Data" type pairing, and the
-   blue-data/amber-highlight palette. Density dial 8/10, motion dial 2/10.
+/* Monochrome: #222222 and #FFFFFF are the only two colours in the app. Every
+   other value here is a mix of exactly those two.
 
-   Two documented divergences from the generated palette, both on its own
-   priority-1 rule (contrast):
-   - Accent/CTA #D97706 carries BLACK text (6.59:1). White on it is 3.19:1.
-   - Its Border #DBEAFE is 1.22:1 against the card, which fails WCAG 1.4.11's
-     3:1 for control boundaries. It is used for decorative dividers only;
-     form controls use --color-line-strong (4.55:1). */
+   The scale stops are chosen for contrast, not for even spacing:
+     400 #909090 → 3.19:1 on white — the floor for control boundaries (1.4.11)
+     500 #747474 → 4.67:1 on white — the floor for body text (1.4.3)
+   Anything lighter than 400 is decorative only and never carries meaning.
+
+   Tailwind's slate/red/emerald/amber/blue ramps are all remapped onto this one
+   scale, so existing utility classes in the markup render monochrome without
+   each call site having to change. */
 @theme {
-  --font-display: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif,
+  /* One family across the app; headings separate themselves by weight, size and
+     tracking rather than by a second typeface. DM Mono is DM Sans's companion
+     and is kept for merge tags, where character alignment actually matters. */
+  --font-display: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --color-primary: #1e40af;
-  --color-primary-hover: #1e3a8a;
-  --color-primary-soft: #93c5fd;
-  --color-accent: #d97706;
-  --color-surface: #f8fafc;
-  --color-card: #ffffff;
-  --color-ink: #1e3a8a;
-  --color-muted: #e9eef6;
-  --color-muted-ink: #475569;
-  --color-line: #dbeafe;
-  --color-line-strong: #64748b;
-  --color-destructive: #dc2626;
+  --color-ink: #222222;
+  --color-surface: #ffffff;
+
+  --color-mono-50: #f8f8f8;
+  --color-mono-100: #f0f0f0;
+  --color-mono-200: #e0e0e0;
+  --color-mono-300: #cacaca;
+  --color-mono-400: #909090;
+  --color-mono-500: #747474;
+  --color-mono-600: #606060;
+  --color-mono-700: #4a4a4a;
+  --color-mono-800: #383838;
+  --color-mono-900: #2b2b2b;
+  --color-mono-950: #222222;
+
+  --color-card: var(--color-mono-50);
+  --color-muted: var(--color-mono-100);
+  --color-muted-ink: var(--color-mono-500);
+  --color-line: var(--color-mono-200);
+  --color-line-strong: var(--color-mono-400);
+  --color-primary: #222222;
+  --color-primary-hover: var(--color-mono-700);
+  --color-primary-soft: #ffffff;
+  --color-destructive: #222222;
+
+  /* Every hue in the markup collapses onto the one scale. */
+  --color-slate-50: var(--color-mono-50);
+  --color-slate-100: var(--color-mono-100);
+  --color-slate-200: var(--color-mono-200);
+  --color-slate-300: var(--color-mono-300);
+  --color-slate-400: var(--color-mono-400);
+  --color-slate-500: var(--color-mono-500);
+  --color-slate-600: var(--color-mono-600);
+  --color-slate-700: var(--color-mono-700);
+  --color-slate-800: var(--color-mono-800);
+  --color-slate-900: var(--color-mono-900);
+  --color-slate-950: var(--color-mono-950);
+
+  --color-red-50: var(--color-mono-50);
+  --color-red-200: var(--color-mono-200);
+  --color-red-300: var(--color-mono-300);
+  --color-red-400: var(--color-mono-400);
+  --color-red-500: var(--color-mono-500);
+  --color-red-600: var(--color-mono-600);
+  --color-red-700: var(--color-mono-700);
+  --color-red-800: var(--color-mono-800);
+
+  --color-emerald-50: var(--color-mono-50);
+  --color-emerald-300: var(--color-mono-300);
+  --color-emerald-400: var(--color-mono-400);
+  --color-emerald-500: var(--color-mono-500);
+  --color-emerald-600: var(--color-mono-600);
+  --color-emerald-700: var(--color-mono-700);
+
+  --color-amber-50: var(--color-mono-50);
+  --color-amber-200: var(--color-mono-200);
+  --color-amber-500: var(--color-mono-500);
+  --color-amber-800: var(--color-mono-800);
+  --color-amber-900: var(--color-mono-900);
+
+  --color-blue-50: var(--color-mono-50);
+  --color-blue-500: var(--color-mono-500);
 }
 
-/* The generated system is light-only; these dark values are a documented
-   fallback, not a database match. Ink 15.3:1 and muted ink 7.34:1 on surface. */
+/* Dark mode inverts the same two colours rather than introducing new ones. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-primary: #2563eb;
-    --color-primary-hover: #3b82f6;
-    --color-surface: #0b1120;
-    --color-card: #0f172a;
-    --color-ink: #e2e8f0;
-    --color-muted: #1e293b;
-    --color-muted-ink: #94a3b8;
-    --color-line: #1e3a5f;
-    --color-line-strong: #64748b;
+    --color-ink: #ffffff;
+    --color-surface: #222222;
+    --color-card: #2e2e2e;
+    --color-muted: #383838;
+    --color-muted-ink: #b0b0b0;
+    --color-line: #3a3a3a;
+    --color-line-strong: #909090;
+    --color-primary: #ffffff;
+    --color-primary-hover: var(--color-mono-300);
+    --color-primary-soft: #ffffff;
+    --color-destructive: #ffffff;
   }
 }
 
@@ -56,7 +111,6 @@ body {
   }
 }
 
-/* Swiss: the grid and the type do the work. No gradients, no shadows. */
 h1,
 h2,
 h3 {
@@ -97,13 +151,15 @@ time,
 }
 
 @layer components {
-  /* Control boundaries use the stronger line: an input's edge is information,
-     and the palette's decorative border does not survive 1.4.11. */
+  /* A single bottom rule carries the control boundary at 3.19:1, so 1.4.11 is
+     still met without drawing a box. Focus thickens it and tints the field, so
+     the state is never signalled by colour alone — which matters more here,
+     since there is no colour left to signal with. */
   .field {
-    @apply w-full rounded-md border px-3 py-2 text-sm transition;
+    @apply w-full border-0 bg-transparent px-1 py-2 text-sm transition;
 
-    border-color: var(--color-line-strong);
-    background-color: var(--color-card);
+    border-bottom: 1px solid var(--color-line-strong);
+    border-radius: 0;
     color: var(--color-ink);
 
     &::placeholder {
@@ -111,18 +167,19 @@ time,
     }
 
     &:focus {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 1px;
-      border-color: var(--color-primary);
+      outline: none;
+      border-bottom: 2px solid var(--color-ink);
+      background-color: color-mix(in oklab, var(--color-ink) 6%, transparent);
     }
   }
 
+  /* Invalid state cannot lean on red any more: the rule doubles in weight and
+     every caller also renders aria-invalid plus a text error. */
   .field[aria-invalid="true"] {
-    border-color: var(--color-destructive);
+    border-bottom: 2px solid var(--color-ink);
 
     &:focus {
-      outline-color: var(--color-destructive);
-      border-color: var(--color-destructive);
+      background-color: color-mix(in oklab, var(--color-ink) 10%, transparent);
     }
   }
 
@@ -138,62 +195,33 @@ time,
     color: var(--color-muted-ink);
   }
 
-  /* Flat: a hairline, nothing else. Density dial 8 → p-4. */
+  /* Borderless: grouping comes from a faint tonal surface and whitespace. */
   .card {
-    @apply rounded-lg border p-4;
+    @apply rounded-lg p-5;
 
-    border-color: var(--color-line);
     background-color: var(--color-card);
   }
 
+  .block-plain {
+    @apply py-2;
+  }
+
+  /* Data rows are separated by alternating tone rather than rules. */
+  .rows > tr:nth-child(even) {
+    background-color: color-mix(in oklab, var(--color-ink) 4%, transparent);
+  }
+
+  /* Hierarchy without hue: solid fill → tonal fill → underlined text. */
   .btn-primary {
     @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md
       px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed
       disabled:opacity-50;
 
     background-color: var(--color-primary);
-    color: #ffffff; /* 8.72:1 on #1E40AF, 5.17:1 on the dark-mode #2563EB */
+    color: var(--color-surface); /* 15.9:1 either way round */
 
     &:hover:not(:disabled) {
       background-color: var(--color-primary-hover);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 2px;
-    }
-  }
-
-  .btn-secondary {
-    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md
-      border px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed
-      disabled:opacity-50;
-
-    border-color: var(--color-line-strong);
-    background-color: var(--color-card);
-    color: var(--color-ink);
-
-    &:hover:not(:disabled) {
-      background-color: var(--color-muted);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 2px;
-    }
-  }
-
-  /* Amber is the CTA highlight and only ever carries black text. */
-  .btn-cta {
-    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md
-      px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed
-      disabled:opacity-50;
-
-    background-color: var(--color-accent);
-    color: #000000; /* 6.59:1 — white on this amber is 3.19:1 and fails */
-
-    &:hover:not(:disabled) {
-      filter: brightness(0.94);
     }
 
     &:focus-visible {
@@ -202,18 +230,38 @@ time,
     }
   }
 
-  .link {
-    @apply rounded-sm font-medium underline-offset-2 transition hover:underline;
+  .btn-secondary {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md
+      border-0 px-4 py-2 text-sm font-medium transition
+      disabled:cursor-not-allowed disabled:opacity-50;
 
-    color: var(--color-primary);
+    background-color: var(--color-muted);
+    color: var(--color-ink);
 
-    &:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 2px;
+    &:hover:not(:disabled) {
+      background-color: var(--color-line);
     }
 
-    @media (prefers-color-scheme: dark) {
-      color: var(--color-primary-soft);
+    &:focus-visible {
+      outline: 2px solid var(--color-ink);
+      outline-offset: 2px;
+    }
+  }
+
+  /* Always underlined. With no colour difference left, the underline is the
+     only thing distinguishing a link from body text (1.4.1). */
+  .link {
+    @apply rounded-sm font-medium underline underline-offset-2 transition;
+
+    color: var(--color-ink);
+
+    &:hover {
+      text-decoration-thickness: 2px;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-ink);
+      outline-offset: 2px;
     }
   }
 }

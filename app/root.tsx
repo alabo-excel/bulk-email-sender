@@ -41,8 +41,8 @@ export const links: Route.LinksFunction = () => [
     rel: "stylesheet",
     href:
       "https://fonts.googleapis.com/css2" +
-      "?family=Fira+Code:wght@400;500;600;700" +
-      "&family=Fira+Sans:wght@300;400;500;600;700" +
+      "?family=DM+Sans:opsz,wght@9..40,300..700" +
+      "&family=DM+Mono:wght@400;500" +
       "&display=swap",
   },
 ];
@@ -117,7 +117,7 @@ function AppShell() {
       <main className="reveal reveal-2 flex-1">
         <Outlet />
       </main>
-      <footer className="mt-12 border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+      <footer className="mt-12 pt-4 text-xs text-slate-500 dark:text-slate-400">
         Lists, email history, and settings are saved in this browser for your account.
         Clearing browser data removes them. Keep this tab open while sending.
       </footer>

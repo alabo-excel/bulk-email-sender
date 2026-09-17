@@ -351,7 +351,7 @@ export default function Campaign({
                     key={header}
                     type="button"
                     onClick={() => insertToken(header)}
-                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs text-slate-700 transition hover:border-primary hover:text-accent dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-primary-soft"
+                    className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700 transition hover:text-primary dark:bg-slate-800 dark:text-slate-300 dark:hover:text-primary-soft"
                   >
                     {`{{${header}}}`}
                   </button>
@@ -425,7 +425,7 @@ export default function Campaign({
               Preview
             </h2>
             {preview ? (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+              <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-950">
                 <p className="hint">
                   To: {audience.recipients[0]?.email ?? "(no matching contact)"}
                 </p>
