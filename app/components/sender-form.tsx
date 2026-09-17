@@ -19,6 +19,24 @@ const MASK = "••••••••••••";
 
 const MIN_PASSPHRASE = 12;
 
+type Provider = keyof typeof SMTP_PROVIDERS;
+
+/* Gmail has not accepted account passwords over SMTP since Google retired
+   "less secure app access", so an App Password is mandatory there rather than a
+   fallback. Zoho still takes the mailbox password unless 2FA is on. */
+const PASSWORD_COPY = {
+  gmail: {
+    label: "Google app password",
+    hint: "Gmail requires an App Password — your normal Google password will not work over SMTP. Generate one under Google Account → Security → 2-Step Verification → App passwords.",
+    missing: "Enter your Google app password.",
+  },
+  zoho: {
+    label: "Email password",
+    hint: "Your Zoho mailbox password. If two-factor auth is on, generate an app-specific password instead under Zoho Accounts → Security → App Passwords.",
+    missing: "Enter your email password.",
+  },
+} as const satisfies Record<Provider, { label: string; hint: string; missing: string }>;
+
 export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNotice: NoticeHandler }) {
   const { sender } = useAtomValue(stateAtom);
   const setUnlocked = useSetAtom(passwordAtom);
@@ -27,6 +45,11 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
   const navigate = useNavigate();
   const summaryRef = useRef<HTMLDivElement>(null);
   const saved = Boolean(sender?.password) && !onboarding;
+  // Controlled so the password field's label and guidance follow the choice.
+  const [provider, setProvider] = useState<Provider>(
+    sender?.host === SMTP_PROVIDERS.gmail.host ? "gmail" : "zoho",
+  );
+  const passwordCopy = PASSWORD_COPY[provider];
 
   /** Validates one field against the whole form, so confirm can see passphrase. */
   function checkField(name: string, values: FormData): string {
@@ -39,8 +62,13 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
       case "email":
         if (!value.trim()) return "Enter the email address you send from.";
         return isValidEmail(value.trim()) ? "" : "Enter a valid email address.";
-      case "password":
-        return settingPassword && !password ? "Enter your email or app password." : "";
+      case "password": {
+        if (!settingPassword || password) return "";
+        // Read from the form rather than state so the message always matches
+        // the provider actually submitted.
+        const chosen = String(values.get("provider") ?? "zoho");
+        return (PASSWORD_COPY[chosen as Provider] ?? PASSWORD_COPY.zoho).missing;
+      }
       case "passphrase":
         if (!settingPassword) return "";
         if (!value) return "Choose a vault passphrase.";
@@ -67,7 +95,7 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
 
   return <section className="card">
     <h1 className="text-xl font-semibold">{onboarding ? "Set up your sender email" : "Sender settings"}</h1>
-    <p className="hint mt-2">Enter the mailbox you want to send from and its SMTP password. Use an app password if your email provider requires one.</p>
+    <p className="hint mt-2">Choose the mailbox you want to send from. Pick your provider first — the password it needs differs.</p>
 
     <form className="mt-5 space-y-4" aria-busy={busy} noValidate onSubmit={async (event) => {
       event.preventDefault();
@@ -129,17 +157,21 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
       <div>
         <label className="label block" htmlFor="provider">Email provider</label>
         <select id="provider" name="provider" className="field" aria-describedby="provider-hint"
-          defaultValue={sender?.host === SMTP_PROVIDERS.gmail.host ? "gmail" : "zoho"}>
+          value={provider} onChange={(event) => {
+            setProvider(event.currentTarget.value as Provider);
+            // The old provider's wording no longer applies to the error shown.
+            setErrors((current) => ({ ...current, password: "" }));
+          }}>
           <option value="zoho">Zoho</option>
           <option value="gmail">Gmail</option>
         </select>
         <p id="provider-hint" className="hint mt-1">Your secure SMTP connection is configured automatically for the selected provider.</p>
       </div>
-      <Field label="Email password / app password" name="password" type="password" autoComplete="new-password"
+      <Field label={passwordCopy.label} name="password" type="password" autoComplete="new-password"
         placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.password}
         hint={saved
           ? "Saved and encrypted. Leave blank to keep it, or type a new one to replace it."
-          : "If your provider enforces two-factor auth, generate an app-specific password and use that here."} />
+          : passwordCopy.hint} />
       <Field label="Vault passphrase" name="passphrase" type="password" autoComplete="new-password"
         placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.passphrase}
         hint={saved
