@@ -69,8 +69,8 @@ function NavItem({ to, children }: { to: string; children: React.ReactNode }) {
       className={({ isActive }) =>
         `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
           isActive
-            ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
-            : "text-gray-600 hover:bg-gray-200/70 dark:text-gray-300 dark:hover:bg-gray-800"
+            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+            : "text-slate-600 hover:bg-slate-200/70 dark:text-slate-300 dark:hover:bg-slate-800"
         }`
       }
     >
@@ -113,7 +113,7 @@ function AppShell() {
       <main className="flex-1">
         <Outlet />
       </main>
-      <footer className="mt-12 border-t border-gray-200 pt-4 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+      <footer className="mt-12 border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
         Lists, email history, and settings are saved in this browser for your account.
         Clearing browser data removes them. Keep this tab open while sending.
       </footer>
@@ -140,9 +140,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   return (
     <main className="container mx-auto p-4 pt-16">
       <h1 className="text-2xl font-semibold">{message}</h1>
-      <p className="mt-2 text-gray-600 dark:text-gray-400">{details}</p>
+      <p className="mt-2 text-slate-600 dark:text-slate-400">{details}</p>
       {stack && (
-        <pre className="mt-4 w-full overflow-x-auto rounded-lg bg-gray-100 p-4 text-xs dark:bg-gray-900">
+        <pre className="mt-4 w-full overflow-x-auto rounded-lg bg-slate-100 p-4 text-xs dark:bg-slate-900">
           <code>{stack}</code>
         </pre>
       )}

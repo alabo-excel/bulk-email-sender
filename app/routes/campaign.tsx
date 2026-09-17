@@ -274,7 +274,7 @@ export default function Campaign({
 
   return (
     <Form method="post" className="space-y-6">
-      {!unlocked && <p className="card text-sm">Your sender is locked. <Link className="text-indigo-600 underline" to="/settings">Unlock in Settings</Link> before sending. Dry runs are still available.</p>}
+      {!unlocked && <p className="card text-sm">Your sender is locked. <Link className="link" to="/settings">Unlock in Settings</Link> before sending. Dry runs are still available.</p>}
       <input type="hidden" name="rules" value={JSON.stringify(rules)} />
       <input type="hidden" name="matchMode" value={matchMode} />
       <input type="hidden" name="emailColumn" value={emailColumn} />
@@ -309,7 +309,7 @@ export default function Campaign({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
           <section className="card">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               1 · Email column
             </h2>
             <select
@@ -339,7 +339,7 @@ export default function Campaign({
           />
 
           <section className="card">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               3 · Compose
             </h2>
 
@@ -351,7 +351,7 @@ export default function Campaign({
                     key={header}
                     type="button"
                     onClick={() => insertToken(header)}
-                    className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 font-mono text-xs text-gray-700 transition hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:text-indigo-400"
+                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs text-slate-700 transition hover:border-accent hover:text-accent dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-accent-soft"
                   >
                     {`{{${header}}}`}
                   </button>
@@ -421,16 +421,16 @@ export default function Campaign({
 
         <div className="space-y-6">
           <section className="card">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Preview
             </h2>
             {preview ? (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
                 <p className="hint">
                   To: {audience.recipients[0]?.email ?? "(no matching contact)"}
                 </p>
                 <p className="mt-2 font-medium">{preview.subject}</p>
-                <p className="mt-3 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+                <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">
                   {preview.body}
                 </p>
               </div>
@@ -440,7 +440,7 @@ export default function Campaign({
           </section>
 
           <section className="card space-y-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               4 · Send
             </h2>
 
@@ -471,7 +471,7 @@ export default function Campaign({
                 step={250}
                 value={delayMs}
                 onChange={(event) => setDelayMs(Number(event.target.value))}
-                className="w-full accent-indigo-600"
+                className="w-full accent-accent"
               />
               <p className="hint">
                 ≈{estimatedMinutes} min for {audience.recipients.length}{" "}
@@ -485,7 +485,7 @@ export default function Campaign({
                 name="skipAlreadySent"
                 checked={skipAlreadySent}
                 onChange={(event) => setSkipAlreadySent(event.target.checked)}
-                className="mt-0.5 accent-indigo-600"
+                className="mt-0.5 accent-accent"
               />
               <span>
                 Skip contacts already emailed from this list
@@ -501,7 +501,7 @@ export default function Campaign({
                 name="dryRun"
                 checked={dryRun}
                 onChange={(event) => setDryRun(event.target.checked)}
-                className="mt-0.5 accent-indigo-600"
+                className="mt-0.5 accent-accent"
               />
               <span>
                 Dry run
@@ -552,7 +552,7 @@ export default function Campaign({
 
           {loaderData.reports.length > 0 && (
             <section className="card">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Past runs
               </h2>
               <ul className="space-y-2 text-sm">
@@ -560,7 +560,7 @@ export default function Campaign({
                   <li key={report.id}>
                     <Link
                       to={`/reports/${report.id}`}
-                      className="text-indigo-600 hover:underline dark:text-indigo-400"
+                      className="link"
                     >
                       {new Date(report.startedAt).toLocaleString()}
                     </Link>
@@ -602,7 +602,7 @@ function FilterBuilder({
   return (
     <section className="card">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           2 · Who gets it
         </h2>
         {rules.length > 1 && (
@@ -665,7 +665,7 @@ function FilterBuilder({
               <button
                 type="button"
                 onClick={() => onChangeRules(rules.filter((_, i) => i !== index))}
-                className="px-2 text-gray-400 transition hover:text-red-600"
+                className="px-2 text-slate-400 transition hover:text-red-600"
                 aria-label="Remove filter"
               >
                 ×

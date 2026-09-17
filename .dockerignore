@@ -2,3 +2,11 @@
 build
 node_modules
 README.md
+
+# Never let local secrets or git history into a build context that uses `COPY . /app`.
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.DS_Store

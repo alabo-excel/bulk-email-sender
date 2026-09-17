@@ -102,7 +102,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
         </h1>
         <p className="hint mt-1">
           A CSV with a header row. Every column becomes a{" "}
-          <code className="rounded bg-gray-100 px-1 py-0.5 dark:bg-gray-800">
+          <code className="rounded bg-slate-100 px-1 py-0.5 dark:bg-slate-800">
             {"{{merge_tag}}"}
           </code>{" "}
           you can use in the email.
@@ -122,14 +122,14 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
               name="file"
               type="file"
               accept=".csv,text/csv"
-              className="field file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-indigo-700 dark:file:bg-indigo-500/15 dark:file:text-indigo-300"
+              className="field file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-accent dark:file:bg-emerald-500/15 dark:file:text-accent-soft"
             />
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
             <span className="hint">or paste</span>
-            <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
           </div>
 
           <div>
@@ -173,13 +173,13 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
         )}
 
         <section className="card">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Your lists
           </h2>
           {loaderData.lists.length === 0 ? (
             <p className="hint mt-3">Nothing uploaded yet.</p>
           ) : (
-            <ul className="mt-3 divide-y divide-gray-100 dark:divide-gray-800">
+            <ul className="mt-3 divide-y divide-slate-100 dark:divide-slate-800">
               {loaderData.lists.map((list) => (
                 <li
                   key={list.id}
@@ -188,7 +188,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
                   <div className="min-w-0">
                     <Link
                       to={`/lists/${list.id}`}
-                      className="block truncate text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                      className="link block truncate text-sm"
                     >
                       {list.name}
                     </Link>
@@ -201,7 +201,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
                     <input type="hidden" name="listId" value={list.id} />
                     <button
                       type="submit"
-                      className="text-xs text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                      className="text-xs text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
                     >
                       Delete
                     </button>

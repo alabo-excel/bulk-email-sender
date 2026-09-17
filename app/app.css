@@ -3,11 +3,19 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* Accent is reserved for primary actions and links; slate carries the chrome.
+     Swapping the brand colour is these three lines — nothing else hardcodes it.
+     Anchored on emerald-700 rather than -600: white on emerald-600 is ~3.8:1,
+     which fails WCAG AA for the 14px button label. */
+  --color-accent: #047857; /* emerald-700 — 5.0:1 against white */
+  --color-accent-hover: #065f46; /* emerald-800 — 7.1:1 against white */
+  --color-accent-soft: #34d399; /* emerald-400 — accent text on dark surfaces */
 }
 
 html,
 body {
-  @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100;
+  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
@@ -16,40 +24,57 @@ body {
 
 @layer components {
   .field {
-    @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-      text-gray-900 shadow-sm outline-none transition
-      placeholder:text-gray-400
-      focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30
-      dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100
-      dark:placeholder:text-gray-500;
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+      text-slate-900 shadow-sm outline-none transition
+      placeholder:text-slate-400
+      focus:border-slate-500 focus:ring-2 focus:ring-slate-500/40
+      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100
+      dark:placeholder:text-slate-500 dark:focus:border-slate-400
+      dark:focus:ring-slate-400/40;
+  }
+
+  /* Invalid fields must not read as invalid by colour alone — every caller also
+     wires aria-invalid plus a text hint. */
+  .field[aria-invalid="true"] {
+    @apply border-red-500 focus:border-red-500 focus:ring-red-500/40
+      dark:border-red-500 dark:focus:border-red-400 dark:focus:ring-red-400/40;
   }
 
   .label {
-    @apply mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300;
+    @apply mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300;
   }
 
   .hint {
-    @apply text-xs text-gray-500 dark:text-gray-400;
+    @apply text-xs text-slate-500 dark:text-slate-400;
   }
 
   .card {
-    @apply rounded-xl border border-gray-200 bg-white p-5 shadow-sm
-      dark:border-gray-800 dark:bg-gray-900;
+    @apply rounded-xl border border-slate-200 bg-white p-5 shadow-sm
+      dark:border-slate-800 dark:bg-slate-900;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-accent
       px-4 py-2 text-sm font-semibold text-white shadow-sm transition
-      hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500
+      hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-slate-500
       focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50
-      dark:focus:ring-offset-gray-900;
+      dark:focus:ring-slate-400 dark:focus:ring-offset-slate-900;
   }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg border
-      border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700
-      shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed
-      disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900
-      dark:text-gray-200 dark:hover:bg-gray-800;
+      border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700
+      shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2
+      focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed
+      disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900
+      dark:text-slate-200 dark:hover:bg-slate-800 dark:focus:ring-slate-400
+      dark:focus:ring-offset-slate-900;
+  }
+
+  .link {
+    @apply rounded-sm font-medium text-accent underline-offset-2 transition
+      hover:underline focus:outline-none focus:ring-2 focus:ring-slate-500
+      focus:ring-offset-2 dark:text-accent-soft dark:focus:ring-slate-400
+      dark:focus:ring-offset-slate-900;
   }
 }
