@@ -351,7 +351,7 @@ export default function Campaign({
                     key={header}
                     type="button"
                     onClick={() => insertToken(header)}
-                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs text-slate-700 transition hover:border-accent hover:text-accent dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-accent-soft"
+                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs text-slate-700 transition hover:border-primary hover:text-accent dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-primary-soft"
                   >
                     {`{{${header}}}`}
                   </button>
@@ -471,7 +471,7 @@ export default function Campaign({
                 step={250}
                 value={delayMs}
                 onChange={(event) => setDelayMs(Number(event.target.value))}
-                className="w-full accent-accent"
+                className="w-full accent-primary"
               />
               <p className="hint">
                 ≈{estimatedMinutes} min for {audience.recipients.length}{" "}
@@ -485,7 +485,7 @@ export default function Campaign({
                 name="skipAlreadySent"
                 checked={skipAlreadySent}
                 onChange={(event) => setSkipAlreadySent(event.target.checked)}
-                className="mt-0.5 accent-accent"
+                className="mt-0.5 accent-primary"
               />
               <span>
                 Skip contacts already emailed from this list
@@ -501,7 +501,7 @@ export default function Campaign({
                 name="dryRun"
                 checked={dryRun}
                 onChange={(event) => setDryRun(event.target.checked)}
-                className="mt-0.5 accent-accent"
+                className="mt-0.5 accent-primary"
               />
               <span>
                 Dry run

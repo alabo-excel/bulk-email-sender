@@ -8,3 +8,6 @@
 
 # Local env
 .env.local
+
+# Agent skills — installed locally, not part of the app
+/.agents/

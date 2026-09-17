@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useNavigate } from "react-router";
 import { encryptPassword } from "~/lib/vault";
+import { isValidEmail } from "~/lib/contacts";
 import { stateAtom, passwordAtom, updateState, userId } from "~/lib/store";
 import { Field } from "./field";
+import { ErrorSummary, type FieldErrors } from "./error-summary";
 import { errorNotice, type NoticeHandler } from "./notice";
 
 const SMTP_PROVIDERS = {
@@ -15,22 +17,77 @@ const SMTP_PROVIDERS = {
    encrypted as the literal password. */
 const MASK = "••••••••••••";
 
+const MIN_PASSPHRASE = 12;
+
 export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNotice: NoticeHandler }) {
   const { sender } = useAtomValue(stateAtom);
   const setUnlocked = useSetAtom(passwordAtom);
-  const [mismatch, setMismatch] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
+  const summaryRef = useRef<HTMLDivElement>(null);
   const saved = Boolean(sender?.password) && !onboarding;
+
+  /** Validates one field against the whole form, so confirm can see passphrase. */
+  function checkField(name: string, values: FormData): string {
+    const value = String(values.get(name) ?? "");
+    const password = String(values.get("password") ?? "");
+    // With a stored credential, the secret fields only matter once a new
+    // password is typed.
+    const settingPassword = Boolean(password) || !saved;
+    switch (name) {
+      case "email":
+        if (!value.trim()) return "Enter the email address you send from.";
+        return isValidEmail(value.trim()) ? "" : "Enter a valid email address.";
+      case "password":
+        return settingPassword && !password ? "Enter your email or app password." : "";
+      case "passphrase":
+        if (!settingPassword) return "";
+        if (!value) return "Choose a vault passphrase.";
+        return value.length < MIN_PASSPHRASE
+          ? `Use at least ${MIN_PASSPHRASE} characters.`
+          : "";
+      case "confirm":
+        if (!settingPassword) return "";
+        return value === String(values.get("passphrase") ?? "")
+          ? "" : "This does not match the vault passphrase above.";
+      default:
+        return "";
+    }
+  }
+
+  /** Inline validation on blur, per the forms guidance — never on every keystroke. */
+  const validateOnBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    const form = event.currentTarget.form;
+    if (!form) return;
+    const name = event.currentTarget.name;
+    const message = checkField(name, new FormData(form));
+    setErrors((current) => ({ ...current, [name]: message }));
+  };
 
   return <section className="card">
     <h1 className="text-xl font-semibold">{onboarding ? "Set up your sender email" : "Sender settings"}</h1>
     <p className="hint mt-2">Enter the mailbox you want to send from and its SMTP password. Use an app password if your email provider requires one.</p>
-    <form className="mt-5 space-y-4" aria-busy={busy} onSubmit={async (event) => {
+
+    <form className="mt-5 space-y-4" aria-busy={busy} noValidate onSubmit={async (event) => {
       event.preventDefault();
       const form = event.currentTarget;
       const values = new FormData(form);
-      setBusy(true); onNotice(null); setMismatch(false);
+
+      const found: FieldErrors = {};
+      for (const name of ["email", "password", "passphrase", "confirm"]) {
+        const message = checkField(name, values);
+        if (message) found[name] = message;
+      }
+      setErrors(found);
+      if (Object.keys(found).length) {
+        // Move focus to the summary so keyboard and screen reader users are not
+        // left at the submit button wondering what failed.
+        requestAnimationFrame(() => summaryRef.current?.focus());
+        return;
+      }
+
+      setBusy(true); onNotice(null);
       try {
         const provider = String(values.get("provider"));
         if (provider !== "zoho" && provider !== "gmail") throw new Error("Choose Zoho or Gmail.");
@@ -44,14 +101,7 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
         let plaintext = "";
 
         if (password || !credential) {
-          const passphrase = String(values.get("passphrase") ?? "");
-          if (passphrase !== values.get("confirm")) {
-            setMismatch(true);
-            throw new Error("Vault passphrases do not match.");
-          }
-          if (!password) throw new Error("Enter your email or app password.");
-          if (passphrase.length < 12) throw new Error("Choose a vault passphrase of at least 12 characters.");
-          credential = await encryptPassword(password, passphrase, owner);
+          credential = await encryptPassword(password, String(values.get("passphrase") ?? ""), owner);
           plaintext = password;
         }
         if (owner !== userId()) throw new Error("Account changed. Please try again.");
@@ -63,6 +113,7 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
         } }));
         if (plaintext) setUnlocked(plaintext);
         form.reset();
+        setErrors({});
         onNotice({ tone: "success", text: plaintext
           ? "Sender saved. Your password is encrypted in this browser."
           : "Sender updated. Your saved password was kept." });
@@ -70,30 +121,33 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
       } catch (error) { onNotice(errorNotice(error, "Unable to save sender.")); }
       finally { setBusy(false); }
     }}>
-      <Field label="Sender email" name="email" type="email" defaultValue={sender?.email} autoComplete="email" required />
+      <ErrorSummary ref={summaryRef} errors={errors} />
+
+      <Field label="Sender email" name="email" type="email" defaultValue={sender?.email} autoComplete="email"
+        onBlur={validateOnBlur} error={errors.email} />
       <Field label="Sender name (optional)" name="name" defaultValue={sender?.name} autoComplete="name" />
       <div>
         <label className="label block" htmlFor="provider">Email provider</label>
         <select id="provider" name="provider" className="field" aria-describedby="provider-hint"
-          defaultValue={sender?.host === SMTP_PROVIDERS.gmail.host ? "gmail" : "zoho"} required>
+          defaultValue={sender?.host === SMTP_PROVIDERS.gmail.host ? "gmail" : "zoho"}>
           <option value="zoho">Zoho</option>
           <option value="gmail">Gmail</option>
         </select>
         <p id="provider-hint" className="hint mt-1">Your secure SMTP connection is configured automatically for the selected provider.</p>
       </div>
       <Field label="Email password / app password" name="password" type="password" autoComplete="new-password"
-        required={!saved} placeholder={saved ? MASK : undefined}
+        placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.password}
         hint={saved
           ? "Saved and encrypted. Leave blank to keep it, or type a new one to replace it."
           : "If your provider enforces two-factor auth, generate an app-specific password and use that here."} />
-      <Field label="Vault passphrase" name="passphrase" type="password" autoComplete="new-password" minLength={12}
-        required={!saved} placeholder={saved ? MASK : undefined}
+      <Field label="Vault passphrase" name="passphrase" type="password" autoComplete="new-password"
+        placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.passphrase}
         hint={saved
           ? "Only needed if you are replacing the password above. The passphrase itself is never stored."
-          : "At least 12 characters. You’ll use it to unlock sending after a refresh. It is never saved; if you forget it, enter your sender credentials again."} />
-      <Field label="Confirm vault passphrase" name="confirm" type="password" autoComplete="new-password" minLength={12}
-        required={!saved} placeholder={saved ? MASK : undefined}
-        invalid={mismatch} hint={mismatch ? "This does not match the vault passphrase above." : undefined} />
+          : `At least ${MIN_PASSPHRASE} characters. You’ll use it to unlock sending after a refresh. It is never saved; if you forget it, enter your sender credentials again.`} />
+      <Field label="Confirm vault passphrase" name="confirm" type="password" autoComplete="new-password"
+        placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.confirm} />
+
       <button className="btn-primary" disabled={busy}>{busy ? "Saving…" : onboarding ? "Save and continue" : "Save sender"}</button>
     </form>
   </section>;

@@ -39,7 +39,11 @@ export const links: Route.LinksFunction = () => [
   },
   {
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+    href:
+      "https://fonts.googleapis.com/css2" +
+      "?family=Fira+Code:wght@400;500;600;700" +
+      "&family=Fira+Sans:wght@300;400;500;600;700" +
+      "&display=swap",
   },
 ];
 
@@ -92,10 +96,10 @@ function AppShell() {
   }, [isLoaded, user?.id]);
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <header className="reveal reveal-1 mb-8 flex flex-wrap items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2.5">
           <img src="/logo.svg" alt="" width={36} height={36} className="h-9 w-9" />
-          <span className="text-lg font-semibold tracking-tight">
+          <span className="font-display text-xl font-semibold tracking-tight">
             Cold Email Sender
           </span>
         </Link>
@@ -110,7 +114,7 @@ function AppShell() {
           <UserButton />
         </div>
       </header>
-      <main className="flex-1">
+      <main className="reveal reveal-2 flex-1">
         <Outlet />
       </main>
       <footer className="mt-12 border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">

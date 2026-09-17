@@ -1,80 +1,219 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+/* Design system: ui-ux-pro-max — "Minimalism & Swiss Style" for authenticated
+   dashboards/professional tools, "Dashboard Data" type pairing, and the
+   blue-data/amber-highlight palette. Density dial 8/10, motion dial 2/10.
 
-  /* Accent is reserved for primary actions and links; slate carries the chrome.
-     Swapping the brand colour is these three lines — nothing else hardcodes it.
-     Anchored on emerald-700 rather than -600: white on emerald-600 is ~3.8:1,
-     which fails WCAG AA for the 14px button label. */
-  --color-accent: #047857; /* emerald-700 — 5.0:1 against white */
-  --color-accent-hover: #065f46; /* emerald-800 — 7.1:1 against white */
-  --color-accent-soft: #34d399; /* emerald-400 — accent text on dark surfaces */
+   Two documented divergences from the generated palette, both on its own
+   priority-1 rule (contrast):
+   - Accent/CTA #D97706 carries BLACK text (6.59:1). White on it is 3.19:1.
+   - Its Border #DBEAFE is 1.22:1 against the card, which fails WCAG 1.4.11's
+     3:1 for control boundaries. It is used for decorative dividers only;
+     form controls use --color-line-strong (4.55:1). */
+@theme {
+  --font-display: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-primary: #1e40af;
+  --color-primary-hover: #1e3a8a;
+  --color-primary-soft: #93c5fd;
+  --color-accent: #d97706;
+  --color-surface: #f8fafc;
+  --color-card: #ffffff;
+  --color-ink: #1e3a8a;
+  --color-muted: #e9eef6;
+  --color-muted-ink: #475569;
+  --color-line: #dbeafe;
+  --color-line-strong: #64748b;
+  --color-destructive: #dc2626;
+}
+
+/* The generated system is light-only; these dark values are a documented
+   fallback, not a database match. Ink 15.3:1 and muted ink 7.34:1 on surface. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #2563eb;
+    --color-primary-hover: #3b82f6;
+    --color-surface: #0b1120;
+    --color-card: #0f172a;
+    --color-ink: #e2e8f0;
+    --color-muted: #1e293b;
+    --color-muted-ink: #94a3b8;
+    --color-line: #1e3a5f;
+    --color-line-strong: #64748b;
+  }
 }
 
 html,
 body {
-  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
   }
 }
 
-@layer components {
-  .field {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-      text-slate-900 shadow-sm outline-none transition
-      placeholder:text-slate-400
-      focus:border-slate-500 focus:ring-2 focus:ring-slate-500/40
-      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100
-      dark:placeholder:text-slate-500 dark:focus:border-slate-400
-      dark:focus:ring-slate-400/40;
+/* Swiss: the grid and the type do the work. No gradients, no shadows. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+table,
+time,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    animation: reveal 0.3s ease-out backwards;
   }
 
-  /* Invalid fields must not read as invalid by colour alone — every caller also
-     wires aria-invalid plus a text hint. */
+  .reveal-1 {
+    animation-delay: 0.03s;
+  }
+
+  .reveal-2 {
+    animation-delay: 0.09s;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer components {
+  /* Control boundaries use the stronger line: an input's edge is information,
+     and the palette's decorative border does not survive 1.4.11. */
+  .field {
+    @apply w-full rounded-md border px-3 py-2 text-sm transition;
+
+    border-color: var(--color-line-strong);
+    background-color: var(--color-card);
+    color: var(--color-ink);
+
+    &::placeholder {
+      color: var(--color-muted-ink);
+    }
+
+    &:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 1px;
+      border-color: var(--color-primary);
+    }
+  }
+
   .field[aria-invalid="true"] {
-    @apply border-red-500 focus:border-red-500 focus:ring-red-500/40
-      dark:border-red-500 dark:focus:border-red-400 dark:focus:ring-red-400/40;
+    border-color: var(--color-destructive);
+
+    &:focus {
+      outline-color: var(--color-destructive);
+      border-color: var(--color-destructive);
+    }
   }
 
   .label {
-    @apply mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300;
+    @apply mb-1.5 block text-sm font-medium;
+
+    color: var(--color-ink);
   }
 
   .hint {
-    @apply text-xs text-slate-500 dark:text-slate-400;
+    @apply text-xs;
+
+    color: var(--color-muted-ink);
   }
 
+  /* Flat: a hairline, nothing else. Density dial 8 → p-4. */
   .card {
-    @apply rounded-xl border border-slate-200 bg-white p-5 shadow-sm
-      dark:border-slate-800 dark:bg-slate-900;
+    @apply rounded-lg border p-4;
+
+    border-color: var(--color-line);
+    background-color: var(--color-card);
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-accent
-      px-4 py-2 text-sm font-semibold text-white shadow-sm transition
-      hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-slate-500
-      focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50
-      dark:focus:ring-slate-400 dark:focus:ring-offset-slate-900;
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md
+      px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed
+      disabled:opacity-50;
+
+    background-color: var(--color-primary);
+    color: #ffffff; /* 8.72:1 on #1E40AF, 5.17:1 on the dark-mode #2563EB */
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-primary-hover);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border
-      border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700
-      shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2
-      focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed
-      disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900
-      dark:text-slate-200 dark:hover:bg-slate-800 dark:focus:ring-slate-400
-      dark:focus:ring-offset-slate-900;
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md
+      border px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed
+      disabled:opacity-50;
+
+    border-color: var(--color-line-strong);
+    background-color: var(--color-card);
+    color: var(--color-ink);
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-muted);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  /* Amber is the CTA highlight and only ever carries black text. */
+  .btn-cta {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md
+      px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed
+      disabled:opacity-50;
+
+    background-color: var(--color-accent);
+    color: #000000; /* 6.59:1 — white on this amber is 3.19:1 and fails */
+
+    &:hover:not(:disabled) {
+      filter: brightness(0.94);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-ink);
+      outline-offset: 2px;
+    }
   }
 
   .link {
-    @apply rounded-sm font-medium text-accent underline-offset-2 transition
-      hover:underline focus:outline-none focus:ring-2 focus:ring-slate-500
-      focus:ring-offset-2 dark:text-accent-soft dark:focus:ring-slate-400
-      dark:focus:ring-offset-slate-900;
+    @apply rounded-sm font-medium underline-offset-2 transition hover:underline;
+
+    color: var(--color-primary);
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      color: var(--color-primary-soft);
+    }
   }
 }

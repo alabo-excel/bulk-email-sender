@@ -122,7 +122,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
               name="file"
               type="file"
               accept=".csv,text/csv"
-              className="field file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-accent dark:file:bg-emerald-500/15 dark:file:text-accent-soft"
+              className="field file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary dark:file:bg-blue-500/15 dark:file:text-primary-soft"
             />
           </div>
 
