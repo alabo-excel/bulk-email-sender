@@ -30,6 +30,7 @@ export const middleware: Route.MiddlewareFunction[] = [clerkMiddleware(), async 
 export const loader = (args: Route.LoaderArgs) => rootAuthLoader(args);
 
 export const links: Route.LinksFunction = () => [
+  { rel: "icon", type: "image/svg+xml", href: "/logo.svg" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
@@ -93,9 +94,7 @@ function AppShell() {
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-lg text-white">
-            ✉
-          </span>
+          <img src="/logo.svg" alt="" width={36} height={36} className="h-9 w-9" />
           <span className="text-lg font-semibold tracking-tight">
             Cold Email Sender
           </span>

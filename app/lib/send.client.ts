@@ -1,3 +1,4 @@
+import { MAX_CAMPAIGN_RECIPIENTS } from "./limits";
 import type { Recipient, SkippedRow } from "./contacts";
 import type { SendReport } from "./types";
 import { renderTemplate } from "./template";
@@ -8,6 +9,9 @@ type CampaignInput = {
   recipients: Recipient[]; skipped: SkippedRow[]; delayMs: number; dryRun: boolean;
 };
 export async function sendCampaign(input: CampaignInput) {
+  if (input.recipients.length > MAX_CAMPAIGN_RECIPIENTS) {
+    throw new Error(`Campaigns are limited to ${MAX_CAMPAIGN_RECIPIENTS} recipients. Narrow your filters or upload a smaller list.`);
+  }
   if (!input.dryRun && !localStore.get(passwordAtom)) throw new Error("Unlock your sender password in Settings before sending.");
   const owner = userId();
   const report: SendReport = {

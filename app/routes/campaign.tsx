@@ -1,3 +1,4 @@
+import { MAX_CAMPAIGN_RECIPIENTS } from "~/lib/limits";
 import { useAtomValue } from "jotai";
 import { passwordAtom } from "~/lib/store";
 import { initializeLocalState } from "~/lib/store";
@@ -521,9 +522,14 @@ export default function Campaign({
               </p>
             )}
 
+            <p className="hint" role={audience.recipients.length > MAX_CAMPAIGN_RECIPIENTS ? "alert" : undefined}>
+              Maximum {MAX_CAMPAIGN_RECIPIENTS} recipients per campaign.
+              {audience.recipients.length > MAX_CAMPAIGN_RECIPIENTS && " Narrow your filters or upload a smaller list to continue."}
+            </p>
+
             <button
               type="submit"
-              disabled={sending || audience.recipients.length === 0}
+              disabled={sending || audience.recipients.length === 0 || audience.recipients.length > MAX_CAMPAIGN_RECIPIENTS}
               className="btn-primary w-full"
               onClick={(event) => {
                 if (dryRun) return;

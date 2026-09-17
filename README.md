@@ -29,6 +29,8 @@ Encryption protects a copied localStorage password; it does not protect against 
 
 Upload `sample-contacts.csv` or your own CSV, choose the email column, filter contacts, and compose a template. `{{first_name|there}}` inserts a value with a fallback. Preview and dry runs do not send mail. Invalid, duplicate, suppressed, and optionally previously sent addresses are skipped.
 
+Campaigns are limited to 20 eligible recipients, including dry runs. Narrow your filters or upload a smaller list when the audience exceeds the cap.
+
 Keep the tab open while sending. Each recipient's rendered email and result is saved locally. An interrupted request is recorded as unconfirmed; check your mailbox before retrying because a network failure can occur after delivery. There is no background queue or open/click tracking.
 
 ## Commands
