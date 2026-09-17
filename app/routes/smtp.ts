@@ -1,6 +1,7 @@
 import { getAuth } from "@clerk/react-router/server";
 import type { Route } from "./+types/smtp";
 import { createTransport, validateSender } from "~/lib/mailer.server";
+import { decryptPassword, isEncryptedPassword } from "~/lib/vault.server";
 import { isValidEmail } from "~/lib/contacts";
 import { textToHtml } from "~/lib/template";
 
@@ -25,13 +26,17 @@ export async function action(args: Route.ActionArgs) {
   catch { return reply(false, "Invalid JSON.", 400); }
   if (payload?.expectedUserId !== userId) return reply(false, "Account changed. Please reload before sending.", 403);
   if (!payload || !validateSender(payload.sender)) return reply(false, "Check your sender email, SMTP host, port, and password.", 400);
+  if (!isEncryptedPassword(payload.sender.password)) return reply(false, "Saved sender credentials are unreadable. Enter them again in Settings.", 400);
+  let senderPassword: string;
+  try { senderPassword = decryptPassword(payload.sender.password, userId); }
+  catch { return reply(false, "Saved sender credentials could not be read. Enter them again in Settings.", 400); }
   if (!["verify", "send"].includes(payload.intent)) return reply(false, "Unknown action.", 400);
   if (payload.intent === "send" && (typeof payload.to !== "string" || !isValidEmail(payload.to)
     || typeof payload.subject !== "string" || !payload.subject.trim() || payload.subject.length > 998 || /[\r\n]/.test(payload.subject)
     || typeof payload.body !== "string" || !payload.body.trim())) return reply(false, "Enter a valid recipient, subject, and message.", 400);
   let transport;
   try {
-    transport = await createTransport(payload.sender);
+    transport = await createTransport({ ...payload.sender, password: senderPassword });
     if (payload.intent === "verify") {
       await transport.verify();
       return reply(true, "SMTP connection verified.");

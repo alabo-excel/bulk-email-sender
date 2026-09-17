@@ -17,9 +17,13 @@ Use Node 22.22+ (or a newer supported LTS release).
 ```sh
 npm install
 cp .env.example .env
-# Fill in VITE_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY from Clerk.
+# Fill in VITE_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY from Clerk,
+# then generate a vault key:
+openssl rand -base64 32   # paste into VAULT_KEY
 npm run dev
 ```
+
+`VAULT_KEY` encrypts stored SMTP passwords and must stay server-side — never prefix it with `VITE_`, since Vite inlines those into the browser bundle.
 
 If `.env` already exists, add the Clerk keys without replacing it. Existing SMTP environment variables are no longer used. Configure your application's sign-in methods in the Clerk dashboard.
 
@@ -29,13 +33,15 @@ Open http://localhost:5173, sign up, and complete sender onboarding. Enter your 
 
 Jotai persists lists, suppression addresses, email bodies, send reports, and sender settings in localStorage, separately for each Clerk user. Activity shows campaigns, dry runs, and test emails. Data stays in that browser; it does not sync between devices, and clearing browser data deletes it. Storage quota errors are surfaced instead of silently discarding saves.
 
-**Your mailbox password is stored in plaintext in this browser's localStorage.** It is saved alongside the rest of your local state so that sending works immediately after a refresh, with no passphrase prompt. There is no at-rest encryption.
+Your mailbox password is encrypted with **AES-256-GCM before it ever reaches the browser**, and only the ciphertext is stored in localStorage. The key lives in `VAULT_KEY` on the server and is never sent to the client, so a copy of your browser profile yields nothing usable on its own — decrypting requires an authenticated request to your server.
 
-This means anyone who can read your browser profile can read the password — another user of the same OS account, a backup or sync of the profile directory, browser devtools, or any script that runs on the page. Treat it the way you would treat a password saved in your browser's password manager, and prefer a provider app-password (which you can revoke individually) over your main account password.
+The plaintext password crosses the wire exactly once, when you save the sender (`POST /api/vault`). Every later verify or send posts the blob instead, and the server decrypts it in memory for that one request. The blob is bound to your Clerk user id as additional authenticated data, so ciphertext from one account cannot be replayed under another.
 
-SMTP credentials are sent to the authenticated server endpoint only when needed to verify or send; they are not stored there. Deploy with HTTPS. SMTP requires TLS and public IPv4-resolvable mail servers; private network SMTP hosts are rejected.
+What this does not cover: a script executing on the page can still call the same authenticated endpoints you can, so this is not XSS mitigation. Other local state — lists, reports, suppression addresses — is not encrypted.
 
-Signing out or switching Clerk accounts clears the local state, including the stored password. Clearing browser data removes it too.
+SMTP requires TLS and public IPv4-resolvable mail servers; private network SMTP hosts are rejected. Deploy with HTTPS.
+
+**Rotating `VAULT_KEY` invalidates every saved sender.** Existing blobs stop decrypting and users are asked to enter their password again. Losing the key has the same effect, so back it up with the rest of your deployment secrets.
 
 ## Sending
 

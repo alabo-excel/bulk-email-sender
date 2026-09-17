@@ -1,3 +1,5 @@
+export type EncryptedPassword = { v: 1; iv: string; ct: string; tag: string };
+
 export type ContactList = {
   id: string;
   name: string;

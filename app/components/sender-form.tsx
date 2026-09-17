@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router";
 import { isValidEmail } from "~/lib/contacts";
-import { stateAtom, updateState, userId } from "~/lib/store";
+import { encryptSenderPassword, stateAtom, updateState, userId } from "~/lib/store";
 import { Field } from "./field";
 import { ErrorSummary, type FieldErrors } from "./error-summary";
 import { errorNotice, type NoticeHandler } from "./notice";
@@ -109,9 +109,11 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
         const password = String(values.get("password") ?? "");
         const owner = userId();
 
-        // A saved sender keeps its stored password unless a new one is typed,
-        // so editing the name or provider does not force a re-entry.
-        const credential = password || (saved ? sender?.password : "");
+        // A saved sender keeps its stored ciphertext unless a new password is
+        // typed, so editing the name or provider does not force a re-entry.
+        const credential = password
+          ? await encryptSenderPassword(password)
+          : (saved ? sender?.password : undefined);
         if (owner !== userId()) throw new Error("Account changed. Please try again.");
         if (!credential) throw new Error("Enter your email or app password.");
 
@@ -122,7 +124,7 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
         form.reset();
         setErrors({});
         onNotice({ tone: "success", text: password
-          ? "Sender saved. It is stored in this browser."
+          ? "Sender saved. Your password is encrypted in this browser."
           : "Sender updated. Your saved password was kept." });
         if (onboarding) await navigate("/");
       } catch (error) { onNotice(errorNotice(error, "Unable to save sender.")); }
@@ -149,7 +151,7 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
       <Field label={passwordCopy.label} name="password" type="password" autoComplete="new-password" revealable required={!saved}
         placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.password}
         hint={saved
-          ? "Saved in this browser. Leave blank to keep it, or type a new one to replace it."
+          ? "Saved and encrypted in this browser. Leave blank to keep it, or type a new one to replace it."
           : passwordCopy.hint} />
       <button className="btn-primary" disabled={busy}>{busy ? "Saving…" : onboarding ? "Save and continue" : "Save sender"}</button>
     </form>

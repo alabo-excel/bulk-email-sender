@@ -2,17 +2,16 @@ import { atom, createStore, type WritableAtom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { redirect } from "react-router";
 import type { CsvTable } from "./csv";
-import type { ContactList, SendReport } from "./types";
+import type { ContactList, EncryptedPassword, SendReport } from "./types";
 
 export type Sender = {
   email: string; name: string; host: string; port: number;
   /**
-   * The SMTP password in plaintext. It is written to localStorage with the rest
-   * of the local state and is readable by anything with access to this browser
-   * profile, including any script running on the page. This is a deliberate
-   * product decision to avoid an unlock prompt on every page load.
+   * AES-256-GCM ciphertext produced by the server. The key never leaves the
+   * server (VAULT_KEY), so this blob is inert in the browser — only an
+   * authenticated request can turn it back into a password.
    */
-  password: string;
+  password: EncryptedPassword;
 };
 type LocalState = { sender: Sender | null; lists: ContactList[]; reports: SendReport[]; suppression: string[] };
 const empty: LocalState = { sender: null, lists: [], reports: [], suppression: [] };
@@ -23,6 +22,9 @@ let currentUser = "";
 export function clearSession() {
   currentUser = "";
   localStore.set(activeAtom, atom<LocalState>(empty));
+  // The IndexedDB key is deliberately left alone: it is scoped per user, and
+  // destroying it on an account switch would make that account's stored
+  // ciphertext permanently unreadable when they sign back in.
 }
 export function userId() { return currentUser; }
 export async function initializeLocalState(requireSender = true) {
@@ -33,7 +35,7 @@ export async function initializeLocalState(requireSender = true) {
   if (id !== currentUser) {
     clearSession();
     const storage = createJSONStorage<LocalState>(() => localStorage);
-    const saved = atomWithStorage<LocalState>(`email-sender:v2:${id}`, empty, storage, { getOnInit: true });
+    const saved = atomWithStorage<LocalState>(`email-sender:v4:${id}`, empty, storage, { getOnInit: true });
     localStore.set(activeAtom, saved);
     currentUser = id;
   }
@@ -44,7 +46,7 @@ export function updateState(update: (state: LocalState) => LocalState) {
   if (!currentUser) throw new Error("Sign in before saving data.");
   const next = update(getState());
   // Write first so quota/privacy failures cannot silently lose a saved report.
-  try { localStorage.setItem(`email-sender:v2:${currentUser}`, JSON.stringify(next)); }
+  try { localStorage.setItem(`email-sender:v4:${currentUser}`, JSON.stringify(next)); }
   catch { throw new Error("Browser storage is full or unavailable. Free up space and try again."); }
   localStore.set(localStore.get(activeAtom), next);
 }
@@ -74,6 +76,16 @@ export function getSuppression() { return new Set(getState().suppression); }
 export function addToSuppression(emails: Iterable<string>) {
   updateState((state) => ({ ...state, suppression: [...new Set([...state.suppression, ...emails])] }));
 }
+export async function encryptSenderPassword(password: string): Promise<EncryptedPassword> {
+  const response = await fetch("/api/vault", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password, expectedUserId: currentUser }),
+  });
+  const result = await response.json();
+  if (!response.ok || !result.encrypted) throw new Error(result.message || "Could not save the sender password.");
+  return result.encrypted as EncryptedPassword;
+}
+
 export async function smtpRequest(payload: Record<string, unknown>) {
   const sender = getState().sender;
   if (!sender) throw new Error("Set up your sender in Settings before sending.");
