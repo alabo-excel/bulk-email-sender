@@ -1,12 +1,9 @@
 import { useState } from "react";
-import { useAtomValue } from "jotai";
 import { sendCampaign } from "~/lib/send.client";
-import { passwordAtom } from "~/lib/store";
 import { Field } from "./field";
 import { errorNotice, type NoticeHandler } from "./notice";
 
 export function TestEmailForm({ onNotice }: { onNotice: NoticeHandler }) {
-  const unlocked = useAtomValue(passwordAtom);
   const [busy, setBusy] = useState(false);
 
   return <form className="space-y-3" aria-busy={busy} onSubmit={async (event) => {
@@ -23,8 +20,6 @@ export function TestEmailForm({ onNotice }: { onNotice: NoticeHandler }) {
     finally { setBusy(false); }
   }}>
     <Field label="Send a test email to" name="to" type="email" required />
-    <button className="btn-primary" disabled={busy || !unlocked}
-      aria-describedby={unlocked ? undefined : "test-locked-hint"}>Send test email</button>
-    {!unlocked && <p id="test-locked-hint" className="hint">Unlock sending above before sending a test email.</p>}
+    <button className="btn-primary" disabled={busy}>Send test email</button>
   </form>;
 }

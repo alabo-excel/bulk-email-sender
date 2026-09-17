@@ -3,22 +3,25 @@ import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { redirect } from "react-router";
 import type { CsvTable } from "./csv";
 import type { ContactList, SendReport } from "./types";
-import type { EncryptedPassword } from "./vault";
 
 export type Sender = {
   email: string; name: string; host: string; port: number;
-  password: EncryptedPassword;
+  /**
+   * The SMTP password in plaintext. It is written to localStorage with the rest
+   * of the local state and is readable by anything with access to this browser
+   * profile, including any script running on the page. This is a deliberate
+   * product decision to avoid an unlock prompt on every page load.
+   */
+  password: string;
 };
 type LocalState = { sender: Sender | null; lists: ContactList[]; reports: SendReport[]; suppression: string[] };
 const empty: LocalState = { sender: null, lists: [], reports: [], suppression: [] };
 export const localStore = createStore();
 const activeAtom = atom<WritableAtom<LocalState, [LocalState], void>>(atom<LocalState>(empty));
 export const stateAtom = atom((get) => get(get(activeAtom)));
-export const passwordAtom = atom<string | null>(null);
 let currentUser = "";
 export function clearSession() {
   currentUser = "";
-  localStore.set(passwordAtom, null);
   localStore.set(activeAtom, atom<LocalState>(empty));
 }
 export function userId() { return currentUser; }
@@ -30,7 +33,7 @@ export async function initializeLocalState(requireSender = true) {
   if (id !== currentUser) {
     clearSession();
     const storage = createJSONStorage<LocalState>(() => localStorage);
-    const saved = atomWithStorage<LocalState>(`email-sender:v1:${id}`, empty, storage, { getOnInit: true });
+    const saved = atomWithStorage<LocalState>(`email-sender:v2:${id}`, empty, storage, { getOnInit: true });
     localStore.set(activeAtom, saved);
     currentUser = id;
   }
@@ -41,7 +44,7 @@ export function updateState(update: (state: LocalState) => LocalState) {
   if (!currentUser) throw new Error("Sign in before saving data.");
   const next = update(getState());
   // Write first so quota/privacy failures cannot silently lose a saved report.
-  try { localStorage.setItem(`email-sender:v1:${currentUser}`, JSON.stringify(next)); }
+  try { localStorage.setItem(`email-sender:v2:${currentUser}`, JSON.stringify(next)); }
   catch { throw new Error("Browser storage is full or unavailable. Free up space and try again."); }
   localStore.set(localStore.get(activeAtom), next);
 }
@@ -73,11 +76,10 @@ export function addToSuppression(emails: Iterable<string>) {
 }
 export async function smtpRequest(payload: Record<string, unknown>) {
   const sender = getState().sender;
-  const password = localStore.get(passwordAtom);
-  if (!sender || !password) throw new Error("Unlock your sender password in Settings before sending.");
+  if (!sender) throw new Error("Set up your sender in Settings before sending.");
   const response = await fetch("/api/smtp", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...payload, expectedUserId: currentUser, sender: { email: sender.email, name: sender.name, host: sender.host, port: sender.port, password } }),
+    body: JSON.stringify({ ...payload, expectedUserId: currentUser, sender: { email: sender.email, name: sender.name, host: sender.host, port: sender.port, password: sender.password } }),
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.message || "SMTP request failed.");

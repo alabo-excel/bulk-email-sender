@@ -1,9 +1,8 @@
 import { useRef, useState } from "react";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router";
-import { encryptPassword } from "~/lib/vault";
 import { isValidEmail } from "~/lib/contacts";
-import { stateAtom, passwordAtom, updateState, userId } from "~/lib/store";
+import { stateAtom, updateState, userId } from "~/lib/store";
 import { Field } from "./field";
 import { ErrorSummary, type FieldErrors } from "./error-summary";
 import { errorNotice, type NoticeHandler } from "./notice";
@@ -16,8 +15,6 @@ const SMTP_PROVIDERS = {
 /* Placeholder, not a value: a real defaultValue of dots would be submitted and
    encrypted as the literal password. */
 const MASK = "••••••••••••";
-
-const MIN_PASSPHRASE = 12;
 
 type Provider = keyof typeof SMTP_PROVIDERS;
 
@@ -39,7 +36,6 @@ const PASSWORD_COPY = {
 
 export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNotice: NoticeHandler }) {
   const { sender } = useAtomValue(stateAtom);
-  const setUnlocked = useSetAtom(passwordAtom);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
@@ -69,12 +65,6 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
         const chosen = String(values.get("provider") ?? "zoho");
         return (PASSWORD_COPY[chosen as Provider] ?? PASSWORD_COPY.zoho).missing;
       }
-      case "passphrase":
-        if (!settingPassword) return "";
-        if (!value) return "Choose a vault passphrase.";
-        return value.length < MIN_PASSPHRASE
-          ? `Use at least ${MIN_PASSPHRASE} characters.`
-          : "";
       default:
         return "";
     }
@@ -99,7 +89,7 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
       const values = new FormData(form);
 
       const found: FieldErrors = {};
-      for (const name of ["email", "password", "passphrase"]) {
+      for (const name of ["email", "password"]) {
         const message = checkField(name, values);
         if (message) found[name] = message;
       }
@@ -119,15 +109,9 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
         const password = String(values.get("password") ?? "");
         const owner = userId();
 
-        // A saved sender keeps its stored ciphertext unless a new password is
-        // typed, so editing the name or provider does not force a re-entry.
-        let credential = saved ? sender?.password : undefined;
-        let plaintext = "";
-
-        if (password || !credential) {
-          credential = await encryptPassword(password, String(values.get("passphrase") ?? ""), owner);
-          plaintext = password;
-        }
+        // A saved sender keeps its stored password unless a new one is typed,
+        // so editing the name or provider does not force a re-entry.
+        const credential = password || (saved ? sender?.password : "");
         if (owner !== userId()) throw new Error("Account changed. Please try again.");
         if (!credential) throw new Error("Enter your email or app password.");
 
@@ -135,11 +119,10 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
           email: String(values.get("email")).trim(), name: String(values.get("name")).trim(),
           host: connection.host, port: connection.port, password: credential,
         } }));
-        if (plaintext) setUnlocked(plaintext);
         form.reset();
         setErrors({});
-        onNotice({ tone: "success", text: plaintext
-          ? "Sender saved. Your password is encrypted in this browser."
+        onNotice({ tone: "success", text: password
+          ? "Sender saved. It is stored in this browser."
           : "Sender updated. Your saved password was kept." });
         if (onboarding) await navigate("/");
       } catch (error) { onNotice(errorNotice(error, "Unable to save sender.")); }
@@ -166,13 +149,8 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
       <Field label={passwordCopy.label} name="password" type="password" autoComplete="new-password" revealable required={!saved}
         placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.password}
         hint={saved
-          ? "Saved and encrypted. Leave blank to keep it, or type a new one to replace it."
+          ? "Saved in this browser. Leave blank to keep it, or type a new one to replace it."
           : passwordCopy.hint} />
-      <Field label="Vault passphrase" name="passphrase" type="password" autoComplete="new-password" revealable required={!saved}
-        placeholder={saved ? MASK : undefined} onBlur={validateOnBlur} error={errors.passphrase}
-        hint={saved
-          ? "Only needed if you are replacing the password above. The passphrase itself is never stored."
-          : `At least ${MIN_PASSPHRASE} characters. Use Show to check it before saving — it is never stored, so if you forget it you will need to enter your sender credentials again.`} />
       <button className="btn-primary" disabled={busy}>{busy ? "Saving…" : onboarding ? "Save and continue" : "Save sender"}</button>
     </form>
   </section>;

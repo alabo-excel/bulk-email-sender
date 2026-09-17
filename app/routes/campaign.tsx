@@ -1,6 +1,4 @@
 import { MAX_CAMPAIGN_RECIPIENTS } from "~/lib/limits";
-import { useAtomValue } from "jotai";
-import { passwordAtom } from "~/lib/store";
 import { initializeLocalState } from "~/lib/store";
 import { useMemo, useRef, useState } from "react";
 import { Form, Link, data, redirect, useNavigation } from "react-router";
@@ -182,7 +180,6 @@ export default function Campaign({
   actionData,
 }: Route.ComponentProps) {
   const { list, smtp, suggestedEmailColumn, suggestedNameColumn } = loaderData;
-  const unlocked = useAtomValue(passwordAtom);
   const navigation = useNavigation();
   const sending = navigation.state !== "idle";
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -274,7 +271,6 @@ export default function Campaign({
 
   return (
     <Form method="post" className="space-y-6">
-      {!unlocked && <p className="card text-sm">Your sender is locked. <Link className="link" to="/settings">Unlock in Settings</Link> before sending. Dry runs are still available.</p>}
       <input type="hidden" name="rules" value={JSON.stringify(rules)} />
       <input type="hidden" name="matchMode" value={matchMode} />
       <input type="hidden" name="emailColumn" value={emailColumn} />
