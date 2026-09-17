@@ -11,7 +11,9 @@ export function SenderSettings({ onboarding = false }: { onboarding?: boolean })
   // One notice for the whole screen: competing live regions talk over each other.
   const [notice, setNotice] = useState<Notice | null>(null);
 
-  return <div className="mx-auto max-w-2xl space-y-6">
+  // Full-bleed to the shell's width. Onboarding keeps its own narrow wrapper,
+  // since that screen is a single focused task.
+  return <div className="space-y-6">
     <SenderForm onboarding={onboarding} onNotice={setNotice} />
 
     {sender && !onboarding && <section className="card space-y-4">

@@ -295,8 +295,11 @@ export default function Campaign({
         <div className="text-right">
           <p className="text-3xl font-semibold tabular-nums">
             {audience.recipients.length}
+            <span className="text-base font-normal text-slate-500 dark:text-slate-400">
+              {" / "}{MAX_CAMPAIGN_RECIPIENTS}
+            </span>
           </p>
-          <p className="hint">will receive this email</p>
+          <p className="hint">will receive this email · max {MAX_CAMPAIGN_RECIPIENTS} per send</p>
         </div>
       </div>
 

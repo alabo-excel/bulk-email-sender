@@ -1,3 +1,4 @@
+import { MAX_CAMPAIGN_RECIPIENTS } from "~/lib/limits";
 import { initializeLocalState } from "~/lib/store";
 import { Form, Link, data, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/home";

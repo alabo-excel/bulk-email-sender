@@ -117,7 +117,7 @@ function AppShell() {
       <main className="reveal reveal-2 flex-1">
         <Outlet />
       </main>
-      <footer className="mt-12 pt-4 text-xs text-slate-500 dark:text-slate-400">
+      <footer className="mt-12 pt-4 text-center text-xs text-slate-500 dark:text-slate-400">
         Lists, email history, and settings are saved in this browser for your account.
         Clearing browser data removes them. Keep this tab open while sending.
       </footer>
