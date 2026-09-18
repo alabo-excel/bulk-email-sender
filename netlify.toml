@@ -1,0 +1,11 @@
+[build]
+  command = "react-router build"
+  publish = "build/client"
+
+[build.environment]
+  # React Router 8 requires >=22.22.0; Netlify's default image may be older.
+  NODE_VERSION = "24"
+
+[dev]
+  command = "react-router dev"
+  targetPort = 5173

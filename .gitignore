@@ -11,3 +11,6 @@
 
 # Agent skills — installed locally, not part of the app
 /.agents/
+
+# Netlify build output
+/.netlify/
