@@ -7,6 +7,7 @@ export default [
   route("api/session", "routes/session.ts"),
   route("api/smtp", "routes/smtp.ts"),
   route("api/vault", "routes/vault.ts"),
+  route("api/drafts", "routes/drafts.ts"),
   route("activity", "routes/activity.tsx"),
   index("routes/home.tsx"),
   route("lists/:listId", "routes/campaign.tsx"),

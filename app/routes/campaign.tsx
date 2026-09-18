@@ -1,3 +1,4 @@
+import { DraftAssistant } from "~/components/draft-assistant";
 import { MAX_CAMPAIGN_RECIPIENTS } from "~/lib/limits";
 import { initializeLocalState } from "~/lib/store";
 import { useMemo, useRef, useState } from "react";
@@ -341,6 +342,12 @@ export default function Campaign({
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               3 · Compose
             </h2>
+
+            <DraftAssistant key={list.id} disabled={sending} onChoose={(draft) => {
+              setSubject(draft.subject);
+              setBody(draft.body);
+              bodyRef.current?.focus();
+            }} />
 
             <div className="mb-4">
               <p className="label">Insert a merge tag</p>

@@ -51,6 +51,35 @@ Campaigns are limited to 20 eligible recipients, including dry runs. Narrow your
 
 Keep the tab open while sending. Each recipient's rendered email and result is saved locally. An interrupted request is recorded as unconfirmed; check your mailbox before retrying because a network failure can occur after delivery. There is no background queue or open/click tracking.
 
+## Message drafts and AI allowances
+
+**Free templates work immediately without an API key or network request.** Describe your message — the key points and what the reader should do — then choose **Use free templates**. The local script in `app/lib/draft-templates.ts` composes three versions: it writes an opening sentence around your first point, lists the rest as prose or bullets, and turns an instruction like "ask if they'd like a demo" into a closing sentence addressed to the reader. Brief-style notes to yourself ("mention the free trial") are folded into the email rather than sent as written. It is rule-based, so it rearranges and frames your points but never invents a fact, name, offer, or link the way an AI model can.
+
+For local AI drafting, set `OPENAI_API_KEY` in `.env` and restart `npm run dev`. With `AI_DRAFT_USAGE_STORE=sqlite`, the app uses persistent SQLite counters in `.local/draft-usage.sqlite`. This enforces the same daily limits on your machine and survives restarts. Node may print an experimental SQLite warning.
+
+For production on one server, put the SQLite file on a writable persistent disk and configure:
+
+```dotenv
+OPENAI_API_KEY=your-key
+OPENAI_DRAFT_MODEL=gpt-4o-mini
+AI_DRAFT_USAGE_STORE=sqlite
+AI_DRAFT_LOCAL_DB=/var/lib/email-sender/draft-usage.sqlite
+AI_DRAFTS_PER_USER_PER_DAY=5
+AI_DRAFTS_PER_DAY=100
+```
+
+Run `npm run build` then `NODE_ENV=production npm start` on the server. The app creates the SQLite file and parent directory; the service account must have write access. Keep that directory across deployments and restarts. For containers, mount a persistent volume at the configured directory. Use one server; all its worker processes must use the same database file. SQLite transactions reserve both counters together. Do not delete the database during an active allowance period.
+
+Keep these variables server-side, with no `VITE_` prefix. Use a separate database for development. SQLite is rejected on Netlify because its function filesystem is not a persistent shared database. For Netlify or multiple servers, the optional Redis backend remains available: set `AI_DRAFT_USAGE_STORE=redis`, `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN`.
+
+One credit allows one AI request generating three options. The default allowances are **5 requests per Clerk user per UTC day** and **100 across the app per UTC day**. They reset at midnight UTC. Set either allowance to `0` to disable paid generation. Limits are generation credits, not exact token balances or dollar budgets: each request accepts at most 4,000 description characters and allows at most 2,500 output tokens. Input and output token prices vary with the configured model. The UI shows remaining user credits after an AI request.
+
+The authenticated server atomically reserves both counters before contacting OpenAI. SQLite shares limits across requests and processes on the same server; Redis shares them across servers. Failed and timed-out AI attempts retain their credit because the provider may already have billed them. Users cannot choose another account's counter. Multiple accounts still share the app-wide cap.
+
+If an allowance is exhausted, the API key is missing, the usage database is unconfigured/unavailable, or AI generation fails, the endpoint returns clearly labeled free templates. It never makes an unmetered AI request when usage cannot be verified. Production SQLite requires an explicit database path; storage failures never trigger a fresh in-memory allowance. Network errors reaching the app leave the **Use free templates** button available locally.
+
+Choosing a draft fills the editable subject and body and preserves the footer. Generating or choosing a draft never sends email. Only the description goes to OpenAI, not contacts or SMTP credentials. The integration uses [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs) with response storage disabled.
+
 ## Commands
 
 ```sh

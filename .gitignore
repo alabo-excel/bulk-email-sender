@@ -14,3 +14,6 @@
 
 # Netlify build output
 /.netlify/
+
+# Persistent development AI allowances
+/.local/

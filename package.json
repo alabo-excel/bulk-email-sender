@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "react-router build",
-    "dev": "react-router dev",
+    "dev": "node --env-file-if-exists=.env ./node_modules/.bin/react-router dev",
     "start": "node --env-file-if-exists=.env ./node_modules/.bin/react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
     "test": "node --experimental-strip-types --test tests/*.test.mjs"

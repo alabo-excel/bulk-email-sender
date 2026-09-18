@@ -7,5 +7,5 @@
   NODE_VERSION = "24"
 
 [dev]
-  command = "react-router dev"
+  command = "npm run dev"
   targetPort = 5173
