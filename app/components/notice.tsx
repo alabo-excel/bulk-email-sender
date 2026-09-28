@@ -1,3 +1,5 @@
+import { Alert } from "./alert";
+
 export type Notice = { text: string; tone: "success" | "error" };
 
 export type NoticeHandler = (notice: Notice | null) => void;
@@ -15,11 +17,11 @@ export function NoticeRegions({ notice }: { notice: Notice | null }) {
   return <>
     <div role="status" aria-live="polite">
       {notice?.tone === "success" &&
-        <p className="card text-sm text-emerald-700 dark:text-emerald-300">{notice.text}</p>}
+        <Alert tone="success">{notice.text}</Alert>}
     </div>
     <div role="alert">
       {notice?.tone === "error" &&
-        <p className="card text-sm text-red-700 dark:text-red-300">Error: {notice.text}</p>}
+        <Alert tone="error" title="Something went wrong">{notice.text}</Alert>}
     </div>
   </>;
 }

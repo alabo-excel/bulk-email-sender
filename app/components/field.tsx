@@ -43,7 +43,7 @@ export function Field({ label, hint, error, name, revealable, type, required, ..
       )}
     </div>
 
-    {error && <p id={errorId} className="mt-1 text-xs font-medium text-red-700 dark:text-red-300">{error}</p>}
+    {error && <p id={errorId} className="mt-1 text-xs font-medium text-danger">{error}</p>}
     {hint && <p id={hintId} className="hint mt-1">{hint}</p>}
   </div>;
 }

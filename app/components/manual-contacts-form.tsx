@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Form } from "react-router";
 import { isValidEmail, toColumnKey } from "~/lib/contacts";
 import { MAX_CAMPAIGN_RECIPIENTS } from "~/lib/limits";
+import { Alert } from "./alert";
 
 const DEFAULT_COLUMNS = ["email", "first_name", "last_name", "company"];
 
@@ -80,13 +81,13 @@ export function ManualContactsForm({ error, submitting }: { error?: string; subm
         </p>
         <ul className="mt-2 flex flex-wrap gap-2">
           {columns.map((column) => (
-            <li key={column} className="inline-flex items-center gap-1 rounded-md bg-slate-100 py-1 pl-2.5 pr-1 text-xs dark:bg-slate-800">
+            <li key={column} className="inline-flex min-h-8 items-center gap-1 rounded-md bg-slate-100 py-1 pl-2.5 pr-1 font-mono text-xs dark:bg-slate-800">
               <code>{column}</code>
               {column === "email" ? (
-                <span className="px-1.5 text-slate-500 dark:text-slate-400">required</span>
+                <span className="px-1.5 font-sans text-slate-500 dark:text-slate-400">required</span>
               ) : (
                 <button type="button" onClick={() => removeColumn(column)}
-                  className="cursor-pointer rounded px-1.5 text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400">
+                  className="btn-quiet btn-quiet-danger -my-2.5 min-h-8 min-w-8 text-sm">
                   ×<span className="sr-only"> Remove field {column}</span>
                 </button>
               )}
@@ -104,7 +105,7 @@ export function ManualContactsForm({ error, submitting }: { error?: string; subm
           </div>
           <button type="button" className="btn-secondary" onClick={addColumn}>Add field</button>
         </div>
-        {columnError && <p id="newColumn-error" className="mt-1 text-xs font-medium text-red-700 dark:text-red-300">{columnError}</p>}
+        {columnError && <p id="newColumn-error" className="mt-1 text-xs font-medium text-danger">{columnError}</p>}
       </fieldset>
 
       <ol className="space-y-4">
@@ -113,12 +114,12 @@ export function ManualContactsForm({ error, submitting }: { error?: string; subm
           const emailInvalid = touched.has(contact.id) && email.trim() !== "" && !isValidEmail(email);
           return (
             <li key={contact.id}>
-              <fieldset className="rounded-lg bg-slate-50 p-4 dark:bg-slate-900/40">
+              <fieldset className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
                 <div className="flex items-center justify-between">
                   <legend className="text-sm font-semibold">Contact {index + 1}</legend>
                   {contacts.length > 1 && (
                     <button type="button" onClick={() => removeContact(contact.id)}
-                      className="cursor-pointer text-xs text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400">
+                      className="btn-quiet btn-quiet-danger -my-2">
                       Remove<span className="sr-only"> contact {index + 1}</span>
                     </button>
                   )}
@@ -138,7 +139,7 @@ export function ManualContactsForm({ error, submitting }: { error?: string; subm
                           onChange={(event) => updateValue(contact.id, column, event.target.value)}
                           onBlur={isEmail ? () => setTouched((current) => new Set(current).add(contact.id)) : undefined} />
                         {isEmail && emailInvalid && (
-                          <p id={`${id}-error`} className="mt-1 text-xs font-medium text-red-700 dark:text-red-300">
+                          <p id={`${id}-error`} className="mt-1 text-xs font-medium text-danger">
                             Enter a valid email address.
                           </p>
                         )}
@@ -160,9 +161,7 @@ export function ManualContactsForm({ error, submitting }: { error?: string; subm
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
-          {error}
-        </p>
+        <Alert tone="error" role="alert">{error}</Alert>
       )}
 
       <button type="submit" className="btn-primary" disabled={submitting}>

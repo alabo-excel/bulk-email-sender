@@ -20,6 +20,6 @@ export function TestEmailForm({ onNotice }: { onNotice: NoticeHandler }) {
     finally { setBusy(false); }
   }}>
     <Field label="Send a test email to" name="to" type="email" required />
-    <button className="btn-primary" disabled={busy}>Send test email</button>
+    <button className="btn-secondary" disabled={busy}>{busy ? "Sending…" : "Send test email"}</button>
   </form>;
 }

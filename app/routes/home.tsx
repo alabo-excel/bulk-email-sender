@@ -2,6 +2,7 @@ import { useState } from "react";
 import { initializeLocalState } from "~/lib/store";
 import { Form, Link, data, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/home";
+import { Alert } from "~/components/alert";
 import { ManualContactsForm } from "~/components/manual-contacts-form";
 import { parseCsv } from "~/lib/csv";
 import { buildManualTable, guessEmailColumn } from "~/lib/contacts";
@@ -120,143 +121,133 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
   const [mode, setMode] = useState<Mode>(result?.mode ?? "csv");
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="card">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Add a contact list
-        </h1>
-
-        <div role="group" aria-label="How to add contacts" className="mt-4 inline-flex rounded-md bg-slate-100 p-1 dark:bg-slate-800">
-          {([["csv", "Upload CSV"], ["manual", "Enter manually"]] as const).map(([value, label]) => (
-            <button key={value} type="button" aria-pressed={mode === value} onClick={() => setMode(value)}
-              className={`cursor-pointer rounded px-3 py-1.5 text-sm font-medium transition ${
-                mode === value
-                  ? "bg-white shadow-sm dark:bg-slate-950"
-                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-              }`}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {mode === "manual" ? (
-          <>
-            <p className="hint mt-3">
-              Type in each contact. Blank contacts are ignored.
-            </p>
-            <ManualContactsForm
-              error={manualError}
-              submitting={submittingIntent === "manual"}
-            />
-          </>
-        ) : (
-        <>
-        <p className="hint mt-3">
-          A CSV with a header row. Every column becomes a{" "}
-          <code className="rounded bg-slate-100 px-1 py-0.5 dark:bg-slate-800">
-            {"{{merge_tag}}"}
-          </code>{" "}
-          you can use in the email.
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Contact lists</h1>
+        <p className="hint mt-1 text-sm">
+          Add the people you want to reach, then open a list to write and send your campaign.
         </p>
+      </div>
 
-        <Form
-          method="post"
-          encType="multipart/form-data"
-          className="mt-5 space-y-5"
-        >
-          <div>
-            <label className="label" htmlFor="file">
-              CSV file
-            </label>
-            <input
-              id="file"
-              name="file"
-              type="file"
-              accept=".csv,text/csv"
-              className="field file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary dark:file:bg-blue-500/15 dark:file:text-primary-soft"
-            />
+      {!loaderData.smtpReady && (
+        <Alert tone="warning" title="Your sender isn't connected yet">
+          You can add lists and preview emails now. Finish{" "}
+          <Link to="/settings" className="font-medium underline underline-offset-2">sender settings</Link>{" "}
+          before sending.
+        </Alert>
+      )}
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="card" aria-labelledby="add-list-title">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="add-list-title" className="text-base font-semibold">Add a list</h2>
+            <div role="group" aria-label="How to add contacts" className="segmented">
+              {([["csv", "Upload CSV"], ["manual", "Enter manually"]] as const).map(([value, label]) => (
+                <button key={value} type="button" aria-pressed={mode === value} onClick={() => setMode(value)}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-            <span className="hint">or paste</span>
-            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-          </div>
-
-          <div>
-            <label className="label" htmlFor="pasted">
-              CSV text
-            </label>
-            <textarea
-              id="pasted"
-              name="pasted"
-              rows={5}
-              spellCheck={false}
-              placeholder={"email,first_name,company,industry\nada@acme.com,Ada,Acme,Fintech"}
-              className="field font-mono text-xs"
-            />
-          </div>
-
-          {csvError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
-              {csvError}
-            </p>
-          )}
-
-          <button type="submit" className="btn-primary" disabled={uploading}>
-            {uploading ? "Parsing…" : "Upload and continue"}
-          </button>
-        </Form>
-        </>
-        )}
-      </section>
-
-      <div className="space-y-6">
-        {!loaderData.smtpReady && (
-          <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
-            <p className="font-medium">SMTP is not configured yet.</p>
-            <p className="mt-1">
-              You can still upload and preview. Add credentials in{" "}
-              <Link to="/settings" className="underline">
-                Settings
-              </Link>{" "}
-              before sending.
-            </p>
-          </div>
-        )}
-
-        <section className="card">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Your lists
-          </h2>
-          {loaderData.lists.length === 0 ? (
-            <p className="hint mt-3">No lists yet.</p>
+          {mode === "manual" ? (
+            <>
+              <p className="hint mt-2">
+                Type in each contact. Blank contacts are ignored.
+              </p>
+              <ManualContactsForm
+                error={manualError}
+                submitting={submittingIntent === "manual"}
+              />
+            </>
           ) : (
-            <ul className="mt-3 space-y-1">
+            <>
+              <p className="hint mt-2">
+                A CSV with a header row. Every column becomes a{" "}
+                <code className="rounded bg-slate-100 px-1 py-0.5 font-mono dark:bg-slate-800">
+                  {"{{merge_tag}}"}
+                </code>{" "}
+                you can use in the email.
+              </p>
+
+              <Form
+                method="post"
+                encType="multipart/form-data"
+                className="mt-5 space-y-5"
+              >
+                <div>
+                  <label className="label" htmlFor="file">
+                    CSV file
+                  </label>
+                  <input
+                    id="file"
+                    name="file"
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="block w-full cursor-pointer rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500 transition hover:border-slate-500 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-surface dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 dark:hover:border-slate-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+                  <span className="hint">or paste</span>
+                  <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="pasted">
+                    CSV text
+                  </label>
+                  <textarea
+                    id="pasted"
+                    name="pasted"
+                    rows={5}
+                    spellCheck={false}
+                    placeholder={"email,first_name,company,industry\nada@acme.com,Ada,Acme,Fintech"}
+                    className="field font-mono text-xs"
+                  />
+                </div>
+
+                {csvError && <Alert tone="error" role="alert">{csvError}</Alert>}
+
+                <button type="submit" className="btn-primary" disabled={uploading}>
+                  {uploading ? "Parsing…" : "Upload and continue"}
+                </button>
+              </Form>
+            </>
+          )}
+        </section>
+
+        <section className="card lg:sticky lg:top-6" aria-labelledby="lists-title">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="lists-title" className="section-title">Your lists</h2>
+            {loaderData.lists.length > 0 && <span className="badge">{loaderData.lists.length}</span>}
+          </div>
+          {loaderData.lists.length === 0 ? (
+            <div className="mt-4 rounded-lg border border-dashed border-slate-300 px-4 py-8 text-center dark:border-slate-700">
+              <p className="text-sm font-medium">No lists yet</p>
+              <p className="hint mt-1">Upload a CSV or enter contacts to create your first list.</p>
+            </div>
+          ) : (
+            <ul className="-mx-2 mt-3 space-y-1">
               {loaderData.lists.map((list) => (
                 <li
                   key={list.id}
-                  className="flex items-center justify-between gap-3 py-3"
+                  className="group flex items-center justify-between gap-2 rounded-lg px-2 transition hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  <div className="min-w-0">
-                    <Link
-                      to={`/lists/${list.id}`}
-                      className="link block truncate text-sm"
-                    >
-                      {list.name}
-                    </Link>
-                    <p className="hint">
-                      {list.rowCount} contacts · {list.columnCount} columns
-                    </p>
-                  </div>
-                  <Form method="post">
+                  <Link to={`/lists/${list.id}`} className="min-w-0 flex-1 rounded-md py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+                    <span className="block truncate text-sm font-medium">{list.name}</span>
+                    <span className="hint block">
+                      {list.rowCount} contact{list.rowCount === 1 ? "" : "s"} · {list.columnCount} field{list.columnCount === 1 ? "" : "s"} · {new Date(list.uploadedAt).toLocaleDateString()}
+                    </span>
+                  </Link>
+                  <Form method="post" onSubmit={(event) => {
+                    if (!window.confirm(`Delete “${list.name}” and its send reports? This cannot be undone.`)) event.preventDefault();
+                  }}>
                     <input type="hidden" name="intent" value="delete" />
                     <input type="hidden" name="listId" value={list.id} />
-                    <button
-                      type="submit"
-                      className="text-xs text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
-                    >
-                      Delete
+                    <button type="submit" className="btn-quiet btn-quiet-danger">
+                      Delete<span className="sr-only"> {list.name}</span>
                     </button>
                   </Form>
                 </li>

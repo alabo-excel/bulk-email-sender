@@ -14,6 +14,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -65,18 +66,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function NavItem({ to, children }: { to: string; children: React.ReactNode }) {
+function NavItem({ to, also = [], children }: { to: string; also?: string[]; children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  // Detail pages (a list's campaign, a report) keep their section highlighted.
+  const inSection = also.some((prefix) => pathname.startsWith(prefix));
   return (
     <NavLink
       to={to}
-      end
-      className={({ isActive }) =>
-        `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+      end={to === "/"}
+      className={({ isActive: exact }) => {
+        const isActive = exact || inSection;
+        return `relative inline-flex min-h-11 items-center px-3 text-sm font-medium transition
+        focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
           isActive
-            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-            : "text-slate-600 hover:bg-slate-200/70 dark:text-slate-300 dark:hover:bg-slate-800"
-        }`
-      }
+            ? "text-slate-950 after:absolute after:inset-x-3 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary dark:text-white"
+            : "text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
+        }`;
+      }}
     >
       {children}
     </NavLink>
@@ -95,31 +101,35 @@ function AppShell() {
     if (isLoaded && userId() && user?.id !== userId()) clearSession();
   }, [isLoaded, user?.id]);
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6">
-      <header className="reveal reveal-1 mb-8 flex flex-wrap items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2.5">
-          <img src="/logo.svg" alt="" width={36} height={36} className="h-9 w-9" />
-          <span className="font-display text-xl font-semibold tracking-tight">
-            Cold Email Sender
-          </span>
-        </Link>
-        <div className="flex items-center gap-3">
+    <div className="flex min-h-screen flex-col">
+      <header className="reveal reveal-1 border-b border-slate-200 dark:border-slate-800">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 pt-3 sm:flex-nowrap">
+          <Link to="/" className="flex min-h-11 items-center gap-2.5 pb-3 sm:pb-3">
+            <img src="/logo.svg" alt="" width={32} height={32} className="h-8 w-8" />
+            <span className="font-display text-lg font-semibold tracking-tight">
+              Cold Email Sender
+            </span>
+          </Link>
+          <div className="flex items-center gap-2 pb-3 sm:order-last">
+            <UserButton />
+          </div>
           {isOnboarded && (
-            <nav aria-label="Main navigation" className="flex items-center gap-1">
-              <NavItem to="/">Lists</NavItem>
-              <NavItem to="/activity">Activity</NavItem>
+            <nav aria-label="Main navigation" className="-mb-px flex w-full items-center gap-1 sm:mr-auto sm:w-auto sm:self-end">
+              <NavItem to="/" also={["/lists/"]}>Lists</NavItem>
+              <NavItem to="/activity" also={["/reports/"]}>Activity</NavItem>
               <NavItem to="/settings">Settings</NavItem>
             </nav>
           )}
-          <UserButton />
         </div>
       </header>
-      <main className="reveal reveal-2 flex-1">
+      <main className="reveal reveal-2 mx-auto w-full max-w-6xl flex-1 px-4 py-8">
         <Outlet />
       </main>
-      <footer className="mt-12 pt-4 text-center text-xs text-slate-500 dark:text-slate-400">
-        Lists, email history, and settings are saved in this browser for your account.
-        Clearing browser data removes them. Keep this tab open while sending.
+      <footer className="border-t border-slate-200 dark:border-slate-800">
+        <p className="mx-auto max-w-6xl px-4 py-5 text-xs text-slate-500 dark:text-slate-400">
+          Lists, email history, and settings are saved in this browser for your account.
+          Clearing browser data removes them. Keep this tab open while sending.
+        </p>
       </footer>
     </div>
   );

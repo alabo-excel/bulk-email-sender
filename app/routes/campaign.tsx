@@ -1,3 +1,4 @@
+import { Alert, StepHeading } from "~/components/alert";
 import { DraftAssistant } from "~/components/draft-assistant";
 import { MAX_CAMPAIGN_RECIPIENTS } from "~/lib/limits";
 import { initializeLocalState } from "~/lib/store";
@@ -266,6 +267,13 @@ export default function Campaign({
     });
   };
 
+  const skippedByReason = audience.skipped.reduce<Record<string, number>>((counts, row) => {
+    counts[row.reason] = (counts[row.reason] ?? 0) + 1;
+    return counts;
+  }, {});
+  const recipientCount = audience.recipients.length;
+  const overLimit = recipientCount > MAX_CAMPAIGN_RECIPIENTS;
+
   const estimatedMinutes = Math.round(
     (audience.recipients.length * delayMs) / 60_000,
   );
@@ -278,44 +286,50 @@ export default function Campaign({
       <input type="hidden" name="delayMs" value={delayMs} />
 
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <Link to="/" className="hint hover:underline">
+        <div className="min-w-0">
+          <Link to="/" className="hint inline-flex min-h-8 items-center hover:underline">
             ← All lists
           </Link>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight">
+          <h1 className="truncate text-2xl font-semibold tracking-tight">
             {list.name}
           </h1>
           <p className="hint">
-            {list.rows.length} rows · {list.headers.length} columns
+            {list.rows.length} contact{list.rows.length === 1 ? "" : "s"} · {list.headers.length} field{list.headers.length === 1 ? "" : "s"}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-3xl font-semibold tabular-nums">
-            {audience.recipients.length}
-            <span className="text-base font-normal text-slate-500 dark:text-slate-400">
-              {" / "}{MAX_CAMPAIGN_RECIPIENTS}
-            </span>
+        <div className="card w-full py-4 sm:w-64" aria-live="polite">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="section-title">Recipients</p>
+            <p className="tabular-nums">
+              <span className={`text-2xl font-semibold ${overLimit ? "text-danger" : ""}`}>{recipientCount}</span>
+              <span className="text-sm text-slate-500 dark:text-slate-400"> / {MAX_CAMPAIGN_RECIPIENTS}</span>
+            </p>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800" aria-hidden="true">
+            <div className={`h-full rounded-full transition-[width] ${overLimit ? "bg-danger" : "bg-primary"}`}
+              style={{ width: `${Math.min(100, (recipientCount / MAX_CAMPAIGN_RECIPIENTS) * 100)}%` }} />
+          </div>
+          <p className={`mt-2 text-xs ${overLimit ? "font-medium text-danger" : "hint"}`}>
+            {overLimit
+              ? `${recipientCount - MAX_CAMPAIGN_RECIPIENTS} over the per-send limit. Narrow your filters.`
+              : `Up to ${MAX_CAMPAIGN_RECIPIENTS} per send`}
           </p>
-          <p className="hint">will receive this email · max {MAX_CAMPAIGN_RECIPIENTS} per send</p>
         </div>
       </div>
 
-      {actionData?.error && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
-          {actionData.error}
-        </p>
-      )}
+      {actionData?.error && <Alert tone="error" role="alert" title="Couldn't send">{actionData.error}</Alert>}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
           <section className="card">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              1 · Email column
-            </h2>
+            <StepHeading step={1} title="Recipients" />
+            <label className="label" htmlFor="emailColumn">Email address field</label>
             <select
+              id="emailColumn"
               value={emailColumn}
               onChange={(event) => setEmailColumn(event.target.value)}
               className="field"
+              aria-describedby="emailColumn-hint"
             >
               {list.headers.map((header) => (
                 <option key={header} value={header}>
@@ -323,11 +337,25 @@ export default function Campaign({
                 </option>
               ))}
             </select>
-            <p className="hint mt-2">
-              {audience.skipped.length} row
-              {audience.skipped.length === 1 ? "" : "s"} will be skipped
-              (invalid, duplicate, suppressed or already emailed).
+            <p id="emailColumn-hint" className="hint mt-2">
+              The field that holds each contact's email address.
             </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+              {audience.skipped.length === 0 ? (
+                <span className="badge badge-success">No contacts skipped</span>
+              ) : (
+                <>
+                  <span className="hint">{audience.skipped.length} skipped:</span>
+                  {Object.entries(SKIP_LABELS).map(([reason, label]) =>
+                    skippedByReason[reason] ? (
+                      <span key={reason} className={`badge ${reason === "invalid-email" ? "badge-warning" : ""}`}>
+                        {skippedByReason[reason]} {label}
+                      </span>
+                    ) : null,
+                  )}
+                </>
+              )}
+            </div>
           </section>
 
           <FilterBuilder
@@ -339,9 +367,7 @@ export default function Campaign({
           />
 
           <section className="card">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              3 · Compose
-            </h2>
+            <StepHeading step={3} title="Compose" />
 
             <DraftAssistant key={list.id} disabled={sending} onChoose={(draft) => {
               setSubject(draft.subject);
@@ -357,7 +383,7 @@ export default function Campaign({
                     key={header}
                     type="button"
                     onClick={() => insertToken(header)}
-                    className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700 transition hover:text-primary dark:bg-slate-800 dark:text-slate-300 dark:hover:text-primary-soft"
+                    className="min-h-8 cursor-pointer rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700 transition hover:bg-slate-200 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
                   >
                     {`{{${header}}}`}
                   </button>
@@ -365,7 +391,7 @@ export default function Campaign({
               </div>
               <p className="hint mt-2">
                 Add a fallback with a pipe:{" "}
-                <code>{"{{first_name|there}}"}</code>
+                <code className="font-mono">{"{{first_name|there}}"}</code>
               </p>
             </div>
 
@@ -417,38 +443,42 @@ export default function Campaign({
             </div>
 
             {unknownTokens.length > 0 && (
-              <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
-                These tags match no column and will be sent literally:{" "}
-                {unknownTokens.map((token) => `{{${token}}}`).join(", ")}
-              </p>
+              <Alert tone="warning" className="mt-4" title="Some tags don't match a field">
+                These will be sent exactly as typed:{" "}
+                <span className="font-mono">{unknownTokens.map((token) => `{{${token}}}`).join(", ")}</span>
+              </Alert>
             )}
           </section>
         </div>
 
-        <div className="space-y-6">
-          <section className="card">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Preview
-            </h2>
+        <div className="space-y-6 lg:sticky lg:top-6">
+          <section className="card" aria-labelledby="preview-title">
+            <h2 id="preview-title" className="section-title mb-3">Preview</h2>
             {preview ? (
-              <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-950">
-                <p className="hint">
-                  To: {audience.recipients[0]?.email ?? "(no matching contact)"}
-                </p>
-                <p className="mt-2 font-medium">{preview.subject}</p>
-                <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+                <dl className="space-y-1 border-b border-slate-200 px-4 py-3 text-xs dark:border-slate-800">
+                  {smtp.from && (
+                    <div className="flex gap-2"><dt className="w-12 shrink-0 text-slate-500 dark:text-slate-400">From</dt><dd className="min-w-0 truncate">{smtp.from}</dd></div>
+                  )}
+                  <div className="flex gap-2"><dt className="w-12 shrink-0 text-slate-500 dark:text-slate-400">To</dt><dd className="min-w-0 truncate">{audience.recipients[0]?.email ?? "No matching contact"}</dd></div>
+                  <div className="flex gap-2"><dt className="w-12 shrink-0 text-slate-500 dark:text-slate-400">Subject</dt><dd className="min-w-0 font-medium">{preview.subject}</dd></div>
+                </dl>
+                <p className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                   {preview.body}
                 </p>
               </div>
             ) : (
-              <p className="hint">No rows to preview.</p>
+              <p className="hint">No contacts to preview.</p>
+            )}
+            {preview && preview.missing.length > 0 && (
+              <p className="hint mt-2">
+                Empty for this contact: <span className="font-mono">{preview.missing.join(", ")}</span>
+              </p>
             )}
           </section>
 
           <section className="card space-y-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              4 · Send
-            </h2>
+            <StepHeading step={4} title="Send" />
 
             <div>
               <label className="label" htmlFor="suppression">
@@ -519,23 +549,25 @@ export default function Campaign({
             </label>
 
             {!smtp.ready && (
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
-                SMTP is not configured, so only dry runs will work.{" "}
-                <Link to="/settings" className="underline">
-                  Configure it
+              <Alert tone="warning">
+                Your sender isn't connected, so only dry runs will work.{" "}
+                <Link to="/settings" className="font-medium underline underline-offset-2">
+                  Connect it
                 </Link>
-                .
-              </p>
+              </Alert>
             )}
 
-            <p className="hint" role={audience.recipients.length > MAX_CAMPAIGN_RECIPIENTS ? "alert" : undefined}>
-              Maximum {MAX_CAMPAIGN_RECIPIENTS} recipients per campaign.
-              {audience.recipients.length > MAX_CAMPAIGN_RECIPIENTS && " Narrow your filters or upload a smaller list to continue."}
-            </p>
+            <div role="alert">
+              {overLimit && (
+                <Alert tone="error">
+                  {recipientCount} recipients is over the {MAX_CAMPAIGN_RECIPIENTS}-per-send limit. Narrow your filters or use a smaller list.
+                </Alert>
+              )}
+            </div>
 
             <button
               type="submit"
-              disabled={sending || audience.recipients.length === 0 || audience.recipients.length > MAX_CAMPAIGN_RECIPIENTS}
+              disabled={sending || recipientCount === 0 || overLimit}
               className="btn-primary w-full"
               onClick={(event) => {
                 if (dryRun) return;
@@ -558,23 +590,19 @@ export default function Campaign({
 
           {loaderData.reports.length > 0 && (
             <section className="card">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Past runs
-              </h2>
-              <ul className="space-y-2 text-sm">
+              <h2 className="section-title mb-3">Past runs</h2>
+              <ul className="-mx-2 space-y-1 text-sm">
                 {loaderData.reports.map((report) => (
                   <li key={report.id}>
                     <Link
                       to={`/reports/${report.id}`}
-                      className="link"
+                      className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-2 py-2 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 dark:hover:bg-slate-800"
                     >
-                      {new Date(report.startedAt).toLocaleString()}
+                      <span className="mr-auto font-medium underline-offset-2">{new Date(report.startedAt).toLocaleString()}</span>
+                      {report.dryRun && <span className="badge badge-warning">Dry run</span>}
+                      <span className="badge badge-success">{report.sent} sent</span>
+                      {report.failed > 0 && <span className="badge badge-danger">{report.failed} failed</span>}
                     </Link>
-                    <span className="hint">
-                      {" "}
-                      — {report.sent} sent, {report.failed} failed
-                      {report.dryRun ? " (dry run)" : ""}
-                    </span>
                   </li>
                 ))}
               </ul>
@@ -607,10 +635,7 @@ function FilterBuilder({
 
   return (
     <section className="card">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          2 · Who gets it
-        </h2>
+      <StepHeading step={2} title="Filter contacts">
         {rules.length > 1 && (
           <div className="flex items-center gap-2 text-sm">
             <span className="hint">Match</span>
@@ -626,17 +651,18 @@ function FilterBuilder({
             </select>
           </div>
         )}
-      </div>
+      </StepHeading>
 
       {rules.length === 0 ? (
         <p className="hint">
-          No filters — every contact in the CSV is included.
+          No filters — every contact in the list is included.
         </p>
       ) : (
         <ul className="space-y-2">
           {rules.map((rule, index) => (
             <li key={index} className="flex flex-wrap items-center gap-2">
               <select
+                aria-label={`Filter ${index + 1} field`}
                 value={rule.column}
                 onChange={(event) => update(index, { column: event.target.value })}
                 className="field w-auto flex-1"
@@ -648,6 +674,7 @@ function FilterBuilder({
                 ))}
               </select>
               <select
+                aria-label={`Filter ${index + 1} condition`}
                 value={rule.operator}
                 onChange={(event) =>
                   update(index, { operator: event.target.value as Operator })
@@ -662,6 +689,7 @@ function FilterBuilder({
               </select>
               {operatorNeedsValue(rule.operator) && (
                 <input
+                  aria-label={`Filter ${index + 1} value`}
                   value={rule.value}
                   onChange={(event) => update(index, { value: event.target.value })}
                   placeholder="value"
@@ -671,10 +699,10 @@ function FilterBuilder({
               <button
                 type="button"
                 onClick={() => onChangeRules(rules.filter((_, i) => i !== index))}
-                className="px-2 text-slate-400 transition hover:text-red-600"
-                aria-label="Remove filter"
+                className="btn-quiet btn-quiet-danger"
+                aria-label={`Remove filter ${index + 1}`}
               >
-                ×
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
               </button>
             </li>
           ))}
@@ -696,6 +724,13 @@ function FilterBuilder({
     </section>
   );
 }
+
+const SKIP_LABELS: Record<string, string> = {
+  "invalid-email": "invalid email",
+  duplicate: "duplicate",
+  suppressed: "suppressed",
+  "already-sent": "already emailed",
+};
 
 function normalize(value: string): string {
   return value.toLowerCase().replace(/[\s_-]+/g, "");

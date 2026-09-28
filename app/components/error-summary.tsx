@@ -13,14 +13,12 @@ export const ErrorSummary = forwardRef<HTMLDivElement, { errors: FieldErrors; ti
     if (!entries.length) return null;
     return (
       <div ref={ref} tabIndex={-1} role="alert" aria-labelledby="error-summary-title"
-        className="rounded-lg border border-red-300 bg-red-50 p-4 outline-none
-          focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2
-          dark:border-red-500/50 dark:bg-red-500/10 dark:focus-visible:ring-offset-slate-900">
-        <h2 id="error-summary-title" className="text-sm font-semibold text-red-800 dark:text-red-200">{title}</h2>
+        className="alert alert-error block outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
+        <h2 id="error-summary-title" className="text-sm font-semibold">{title}</h2>
         <ul className="mt-2 space-y-1">
           {entries.map(([name, message]) => (
             <li key={name}>
-              <a href={`#${name}`} className="text-sm text-red-800 underline underline-offset-2 hover:no-underline dark:text-red-200"
+              <a href={`#${name}`} className="text-sm underline underline-offset-2 hover:no-underline"
                 onClick={(event) => {
                   // Focus the field itself, not just the fragment target.
                   event.preventDefault();

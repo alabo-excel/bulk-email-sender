@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, data } from "react-router";
 import type { Route } from "./+types/report";
 import { getReport } from "~/lib/store";
+import { Alert } from "~/components/alert";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Send report · Cold Email Sender" }];
@@ -20,9 +21,9 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 }
 
 const STATUS_STYLES = {
-  sent: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
-  failed: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
-  skipped: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+  sent: "badge-success",
+  failed: "badge-danger",
+  skipped: "",
 } as const;
 
 export default function Report({ loaderData }: Route.ComponentProps) {
@@ -48,10 +49,10 @@ export default function Report({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link to={report.listId === "test" ? "/activity" : `/lists/${report.listId}`} className="hint hover:underline">
+        <Link to={report.listId === "test" ? "/activity" : `/lists/${report.listId}`} className="hint inline-flex min-h-8 items-center hover:underline">
           ← Back to {report.listName}
         </Link>
-        <h1 className="mt-1 text-xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           {report.dryRun ? "Dry run report" : "Send report"}
         </h1>
         <p className="hint">
@@ -60,38 +61,38 @@ export default function Report({ loaderData }: Route.ComponentProps) {
       </div>
 
       {report.dryRun && (
-        <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
-          This was a dry run. Nothing was actually delivered.
-        </p>
+        <Alert tone="warning" title="Dry run">Nothing was actually delivered.</Alert>
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label={report.dryRun ? "Would send" : "Sent"} value={counts.sent} tone="emerald" />
-        <Stat label="Failed" value={counts.failed} tone="red" />
+        <Stat label={report.dryRun ? "Would send" : "Sent"} value={counts.sent} tone="success" />
+        <Stat label="Failed / unconfirmed" value={counts.failed} tone="danger" />
         <Stat label="Skipped" value={counts.skipped} tone="gray" />
       </div>
 
       <div className="card overflow-hidden p-0">
-        <div className="flex flex-wrap gap-1 p-3">
-          {(["all", "sent", "failed", "skipped"] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setFilter(option)}
-              className={`rounded-md px-3 py-1 text-sm capitalize transition ${
-                filter === option
-                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
+        <div className="p-3">
+          <div role="group" aria-label="Show attempts" className="segmented">
+            {(["all", "sent", "failed", "skipped"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={filter === option}
+                onClick={() => setFilter(option)}
+                className="capitalize"
+              >
+                {option}
+                <span className="tabular-nums text-xs opacity-70">
+                  {option === "all" ? report.attempts.length : counts[option]}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+            <thead className="border-y border-slate-200 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
               <tr>
                 <th className="px-4 py-2 font-medium">Row</th>
                 <th className="px-4 py-2 font-medium">Email</th>
@@ -110,7 +111,7 @@ export default function Report({ loaderData }: Route.ComponentProps) {
                   </td>
                   <td className="px-4 py-2">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[attempt.status]}`}
+                      className={`badge capitalize ${STATUS_STYLES[attempt.status]}`}
                     >
                       {attempt.status}
                     </span>
@@ -143,12 +144,13 @@ function Stat({
 }: {
   label: string;
   value: number;
-  tone: "emerald" | "red" | "gray";
+  tone: "success" | "danger" | "gray";
 }) {
+  // Zero is not a result worth colouring: a "0" in red reads as an alarm.
   const tones = {
-    emerald: "text-emerald-600 dark:text-emerald-400",
-    red: "text-red-600 dark:text-red-400",
-    gray: "text-slate-600 dark:text-slate-400",
+    success: value ? "text-success" : "",
+    danger: value ? "text-danger" : "",
+    gray: "",
   };
   return (
     <div className="card">

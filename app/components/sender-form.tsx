@@ -80,7 +80,9 @@ export function SenderForm({ onboarding, onNotice }: { onboarding: boolean; onNo
   };
 
   return <section className="card">
-    <h1 className="text-xl font-semibold">{onboarding ? "Set up your sender email" : "Sender settings"}</h1>
+    {onboarding
+      ? <h1 className="text-2xl font-semibold tracking-tight">Set up your sender email</h1>
+      : <h2 className="text-base font-semibold">Sender</h2>}
     <p className="hint mt-2">Choose the mailbox you want to send from. Pick your provider first — the password it needs differs.</p>
 
     <form className="mt-5 space-y-4" aria-busy={busy} noValidate onSubmit={async (event) => {

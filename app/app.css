@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
-/* Monochrome: #222222 and #FFFFFF are the only two colours in the app. Every
-   other value here is a mix of exactly those two.
+/* Monochrome: #222222 and #FFFFFF carry the whole interface. Every neutral
+   here is a mix of exactly those two. The only exception is status — danger,
+   success and warning — which gets its own small palette below.
 
    The scale stops are chosen for contrast, not for even spacing:
      400 #909090 → 3.19:1 on white — the floor for control boundaries (1.4.11)
      500 #747474 → 4.67:1 on white — the floor for body text (1.4.3)
    Anything lighter than 400 is decorative only and never carries meaning.
 
-   Tailwind's slate/red/emerald/amber/blue ramps are all remapped onto this one
-   scale, so existing utility classes in the markup render monochrome without
-   each call site having to change. */
+   Tailwind's slate and blue ramps are remapped onto this one scale, so those
+   utility classes render monochrome without each call site having to change. */
 @theme {
   /* One family across the app; headings separate themselves by weight, size and
      tracking rather than by a second typeface. DM Mono is DM Sans's companion
@@ -58,27 +58,18 @@
   --color-slate-900: var(--color-mono-900);
   --color-slate-950: var(--color-mono-950);
 
-  --color-red-50: var(--color-mono-50);
-  --color-red-200: var(--color-mono-200);
-  --color-red-300: var(--color-mono-300);
-  --color-red-400: var(--color-mono-400);
-  --color-red-500: var(--color-mono-500);
-  --color-red-600: var(--color-mono-600);
-  --color-red-700: var(--color-mono-700);
-  --color-red-800: var(--color-mono-800);
-
-  --color-emerald-50: var(--color-mono-50);
-  --color-emerald-300: var(--color-mono-300);
-  --color-emerald-400: var(--color-mono-400);
-  --color-emerald-500: var(--color-mono-500);
-  --color-emerald-600: var(--color-mono-600);
-  --color-emerald-700: var(--color-mono-700);
-
-  --color-amber-50: var(--color-mono-50);
-  --color-amber-200: var(--color-mono-200);
-  --color-amber-500: var(--color-mono-500);
-  --color-amber-800: var(--color-mono-800);
-  --color-amber-900: var(--color-mono-900);
+  /* Status is the one place colour is allowed. Each pair clears 4.5:1 for
+     text on its soft fill in both themes, and every status is also named in
+     text, so colour is reinforcement rather than the only signal (1.4.1). */
+  --color-danger: #b42318;
+  --color-danger-soft: #fef3f2;
+  --color-danger-line: #fecdca;
+  --color-success: #067647;
+  --color-success-soft: #ecfdf3;
+  --color-success-line: #abefc6;
+  --color-warning: #93370d;
+  --color-warning-soft: #fffaeb;
+  --color-warning-line: #fedf89;
 
   --color-blue-50: var(--color-mono-50);
   --color-blue-500: var(--color-mono-500);
@@ -98,6 +89,15 @@
     --color-primary-hover: var(--color-mono-300);
     --color-primary-soft: #ffffff;
     --color-destructive: #ffffff;
+    --color-danger: #fda29b;
+    --color-danger-soft: color-mix(in oklab, #f04438 14%, #222222);
+    --color-danger-line: color-mix(in oklab, #f04438 40%, #222222);
+    --color-success: #75e0a7;
+    --color-success-soft: color-mix(in oklab, #17b26a 14%, #222222);
+    --color-success-line: color-mix(in oklab, #17b26a 40%, #222222);
+    --color-warning: #fec84b;
+    --color-warning-soft: color-mix(in oklab, #f79009 14%, #222222);
+    --color-warning-line: color-mix(in oklab, #f79009 40%, #222222);
   }
 }
 
@@ -263,5 +263,114 @@ time,
       outline: 2px solid var(--color-ink);
       outline-offset: 2px;
     }
+  }
+
+  /* Status surfaces. Tone is repeated in text by every caller. */
+  .alert {
+    @apply flex gap-3 rounded-lg border px-4 py-3 text-sm;
+  }
+
+  .alert-error {
+    border-color: var(--color-danger-line);
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger);
+  }
+
+  .alert-success {
+    border-color: var(--color-success-line);
+    background-color: var(--color-success-soft);
+    color: var(--color-success);
+  }
+
+  .alert-warning {
+    border-color: var(--color-warning-line);
+    background-color: var(--color-warning-soft);
+    color: var(--color-warning);
+  }
+
+  .alert-info {
+    border-color: var(--color-line);
+    background-color: var(--color-card);
+    color: var(--color-ink);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium;
+
+    background-color: var(--color-muted);
+    color: var(--color-ink);
+  }
+
+  .badge-success {
+    background-color: var(--color-success-soft);
+    color: var(--color-success);
+  }
+
+  .badge-danger {
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger);
+  }
+
+  .badge-warning {
+    background-color: var(--color-warning-soft);
+    color: var(--color-warning);
+  }
+
+  /* Uppercase eyebrow used for every section heading inside a card. */
+  .section-title {
+    @apply text-xs font-semibold uppercase tracking-wider;
+
+    color: var(--color-muted-ink);
+  }
+
+  /* Segmented control: a tonal track with the active option lifted onto the
+     surface colour. Active state is also exposed via aria-pressed. */
+  .segmented {
+    @apply inline-flex flex-wrap gap-1 rounded-lg p-1;
+
+    background-color: var(--color-muted);
+  }
+
+  .segmented > button {
+    @apply inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md px-3 text-sm font-medium transition;
+
+    color: var(--color-muted-ink);
+
+    &:hover {
+      color: var(--color-ink);
+    }
+
+    &[aria-pressed="true"] {
+      background-color: var(--color-surface);
+      color: var(--color-ink);
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-ink);
+      outline-offset: 2px;
+    }
+  }
+
+  /* Small text-style actions (Delete, Remove) still get a 44px hit area. */
+  .btn-quiet {
+    @apply inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md px-2 text-xs font-medium transition;
+
+    color: var(--color-muted-ink);
+
+    &:hover {
+      color: var(--color-ink);
+      background-color: var(--color-muted);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-ink);
+      outline-offset: 2px;
+    }
+  }
+
+  .btn-quiet-danger:hover {
+    color: var(--color-danger);
+    background-color: var(--color-danger-soft);
   }
 }
