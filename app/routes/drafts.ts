@@ -1,7 +1,6 @@
 import { getAuth } from "@clerk/react-router/server";
 import type { Route } from "./+types/drafts";
 import { DraftProviderError, generateDrafts } from "~/lib/drafts.server";
-import { generateTemplateDrafts } from "~/lib/draft-templates";
 import { reserveDraftCredit } from "~/lib/draft-usage.server";
 
 export async function action(args: Route.ActionArgs) {
@@ -39,29 +38,22 @@ export async function action(args: Route.ActionArgs) {
   if (typeof description !== "string" || !description.trim() || description.length > 4000) {
     return reply({ error: "Describe your email in 1–4,000 characters." }, 400);
   }
-  if (payload.mode !== undefined && !["ai", "template"].includes(payload.mode)) {
-    return reply({ error: "Choose AI or template drafting." }, 400);
-  }
-  const fallback = (message: string, usage?: object) => reply({
-    drafts: generateTemplateDrafts(description), source: "template", message, usage,
-  });
-  if (payload.mode === "template") return fallback("Three free templates are ready. Review the wording before sending.");
-  if (!process.env.OPENAI_API_KEY) {
-    return fallback("AI drafting needs OPENAI_API_KEY on the server. Free templates are shown instead.");
+  if (!process.env.GEMINI_API_KEY) {
+    return reply({ error: "AI drafting is not set up yet. The app administrator needs to add GEMINI_API_KEY on the server." }, 503);
   }
   let usage;
   try { usage = await reserveDraftCredit(userId); }
   catch {
-    return fallback("AI usage storage is unavailable. Check the configured usage database and its access permissions. Free templates are shown instead.");
+    return reply({ error: "AI usage storage is unavailable. Check the configured usage database and its access permissions." }, 503);
   }
   if (!usage.allowed) {
-    return fallback("Today's AI allowance has been reached. Here are three free templates. AI allowances reset at midnight UTC.", usage);
+    return reply({ error: "Today's AI allowance has been reached. AI allowances reset at midnight UTC.", usage }, 429);
   }
   try {
-    return reply({ drafts: await generateDrafts(description.trim()), source: "ai", usage,
+    return reply({ drafts: await generateDrafts(description.trim()), usage,
       message: "Three AI drafts are ready. Choose one to edit below." });
   } catch (error) {
-    const reason = error instanceof DraftProviderError ? error.message : "AI drafting did not finish.";
-    return fallback(`${reason} Free templates are shown instead. This attempt used one AI credit.`, usage);
+    const reason = error instanceof DraftProviderError ? error.message : "AI drafting did not finish. Please try again.";
+    return reply({ error: `${reason} This attempt used one AI credit.`, usage }, 502);
   }
 }

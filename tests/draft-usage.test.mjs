@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { reserveDraftCredit } from "../app/lib/draft-usage.server.ts";
-import { generateTemplateDrafts } from "../app/lib/draft-templates.ts";
 
 function configure(t, values = {}) {
   const env = { ...process.env };
@@ -15,20 +14,6 @@ function configure(t, values = {}) {
   });
   t.after(() => { process.env = env; });
 }
-
-test("free drafts preserve message facts and never access the network", (t) => {
-  t.mock.method(globalThis, "fetch", () => { throw new Error("Unexpected network call"); });
-  const message = "Our trial lasts 14 days.\nWould you like a demo?";
-  const drafts = generateTemplateDrafts(message);
-  assert.equal(drafts.length, 3);
-  assert.equal(new Set(drafts.map((d) => d.body)).size, 3);
-  assert.ok(drafts.every((d) => d.body.includes("our trial lasts 14 days") && d.body.includes("Would you like a demo?")),
-    "the writer's facts and question survive the rewrite");
-  assert.ok(drafts.every((d) => !d.body.includes(message) && !/[\r\n]/.test(d.subject)),
-    "the brief is composed into an email, not echoed");
-  assert.throws(() => generateTemplateDrafts("  "));
-  assert.ok(generateTemplateDrafts("A".repeat(5000)).every((d) => d.subject.length <= 70 && d.body.length < 4200));
-});
 
 test("reserves user and shared budgets together and uses a UTC reset", async (t) => {
   configure(t);

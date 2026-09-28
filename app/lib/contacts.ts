@@ -123,3 +123,58 @@ export function parseEmailList(value: string): Set<string> {
       .filter(Boolean),
   );
 }
+
+/** Turns a free-typed column label into a merge-tag-friendly key. */
+export function toColumnKey(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+export type ManualEntryResult =
+  | { ok: true; headers: string[]; rows: Record<string, string>[] }
+  | { ok: false; error: string };
+
+/**
+ * Validates contacts typed into the manual entry form. Fully blank rows are
+ * ignored; any other row must carry a valid, unique email address.
+ */
+export function buildManualTable(
+  headers: string[],
+  rows: Record<string, string>[],
+): ManualEntryResult {
+  const columns = [...new Set(headers.map(toColumnKey).filter(Boolean))];
+  if (!columns.includes("email")) columns.unshift("email");
+
+  const cleaned = rows
+    .map((row) =>
+      Object.fromEntries(columns.map((column) => [column, String(row[column] ?? "").trim()])),
+    )
+    .filter((row) => columns.some((column) => row[column] !== ""));
+
+  if (cleaned.length === 0) {
+    return { ok: false, error: "Add at least one contact with an email address." };
+  }
+
+  const seen = new Set<string>();
+  for (const [index, row] of cleaned.entries()) {
+    const email = normalizeEmail(row.email);
+    if (!isValidEmail(email)) {
+      return {
+        ok: false,
+        error: row.email
+          ? `Contact ${index + 1}: “${row.email}” is not a valid email address.`
+          : `Contact ${index + 1} is missing an email address.`,
+      };
+    }
+    if (seen.has(email)) {
+      return { ok: false, error: `Contact ${index + 1}: ${email} is already in this list.` };
+    }
+    seen.add(email);
+    row.email = email;
+  }
+
+  return { ok: true, headers: columns, rows: cleaned };
+}

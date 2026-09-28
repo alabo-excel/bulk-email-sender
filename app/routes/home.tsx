@@ -1,9 +1,10 @@
-import { MAX_CAMPAIGN_RECIPIENTS } from "~/lib/limits";
+import { useState } from "react";
 import { initializeLocalState } from "~/lib/store";
 import { Form, Link, data, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/home";
+import { ManualContactsForm } from "~/components/manual-contacts-form";
 import { parseCsv } from "~/lib/csv";
-import { guessEmailColumn } from "~/lib/contacts";
+import { buildManualTable, guessEmailColumn } from "~/lib/contacts";
 import { deleteList, listLists, saveList } from "~/lib/store";
 import { readSmtpConfig } from "~/lib/store";
 
@@ -14,7 +15,7 @@ export function meta(_: Route.MetaArgs) {
     { title: "Contact lists · Cold Email Sender" },
     {
       name: "description",
-      content: "Upload a CSV of contacts and send personalized cold emails.",
+      content: "Upload a CSV or enter contacts, then send personalized cold emails.",
     },
   ];
 }
@@ -42,6 +43,23 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
     const id = String(formData.get("listId") ?? "");
     if (id) deleteList(id);
     return redirect("/");
+  }
+
+  if (formData.get("intent") === "manual") {
+    let parsed: { headers?: unknown; rows?: unknown };
+    try {
+      parsed = JSON.parse(String(formData.get("contacts") ?? "{}"));
+    } catch {
+      return data({ error: "Could not read the contacts. Please try again.", mode: "manual" as const }, { status: 400 });
+    }
+    const headers = Array.isArray(parsed.headers) ? parsed.headers.map(String) : [];
+    const rows = Array.isArray(parsed.rows) ? (parsed.rows as Record<string, string>[]) : [];
+    const result = buildManualTable(headers, rows);
+    if (!result.ok) return data({ error: result.error, mode: "manual" as const }, { status: 400 });
+
+    const name = String(formData.get("listName") ?? "").trim() || "Manual contacts";
+    const list = saveList(name, { headers: result.headers, rows: result.rows });
+    return redirect(`/lists/${list.id}`);
   }
 
   const file = formData.get("file");
@@ -89,19 +107,51 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
   return redirect(`/lists/${list.id}`);
 }
 
+type Mode = "csv" | "manual";
+
 export default function Home({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
-  const uploading =
-    navigation.state === "submitting" &&
-    navigation.formData?.get("intent") !== "delete";
+  const submittingIntent =
+    navigation.state === "submitting" ? navigation.formData?.get("intent") : undefined;
+  const uploading = submittingIntent !== undefined && submittingIntent !== "delete" && submittingIntent !== "manual";
+  const result = actionData as { error?: string; mode?: Mode } | undefined;
+  const manualError = result?.mode === "manual" ? result.error : undefined;
+  const csvError = result?.mode === "manual" ? undefined : result?.error;
+  const [mode, setMode] = useState<Mode>(result?.mode ?? "csv");
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
       <section className="card">
         <h1 className="text-xl font-semibold tracking-tight">
-          Upload a contact list
+          Add a contact list
         </h1>
-        <p className="hint mt-1">
+
+        <div role="group" aria-label="How to add contacts" className="mt-4 inline-flex rounded-md bg-slate-100 p-1 dark:bg-slate-800">
+          {([["csv", "Upload CSV"], ["manual", "Enter manually"]] as const).map(([value, label]) => (
+            <button key={value} type="button" aria-pressed={mode === value} onClick={() => setMode(value)}
+              className={`cursor-pointer rounded px-3 py-1.5 text-sm font-medium transition ${
+                mode === value
+                  ? "bg-white shadow-sm dark:bg-slate-950"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              }`}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {mode === "manual" ? (
+          <>
+            <p className="hint mt-3">
+              Type in each contact. Blank contacts are ignored.
+            </p>
+            <ManualContactsForm
+              error={manualError}
+              submitting={submittingIntent === "manual"}
+            />
+          </>
+        ) : (
+        <>
+        <p className="hint mt-3">
           A CSV with a header row. Every column becomes a{" "}
           <code className="rounded bg-slate-100 px-1 py-0.5 dark:bg-slate-800">
             {"{{merge_tag}}"}
@@ -147,9 +197,9 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
             />
           </div>
 
-          {actionData?.error && (
+          {csvError && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
-              {actionData.error}
+              {csvError}
             </p>
           )}
 
@@ -157,6 +207,8 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
             {uploading ? "Parsing…" : "Upload and continue"}
           </button>
         </Form>
+        </>
+        )}
       </section>
 
       <div className="space-y-6">
@@ -178,7 +230,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
             Your lists
           </h2>
           {loaderData.lists.length === 0 ? (
-            <p className="hint mt-3">Nothing uploaded yet.</p>
+            <p className="hint mt-3">No lists yet.</p>
           ) : (
             <ul className="mt-3 space-y-1">
               {loaderData.lists.map((list) => (

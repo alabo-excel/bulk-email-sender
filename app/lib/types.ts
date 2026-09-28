@@ -1,3 +1,5 @@
+export type EmailDraft = { tone: string; subject: string; body: string };
+
 export type EncryptedPassword = { v: 1; iv: string; ct: string; tag: string };
 
 export type ContactList = {

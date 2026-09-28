@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { userId } from "~/lib/store";
-import { generateTemplateDrafts, type EmailDraft } from "~/lib/draft-templates";
+import type { EmailDraft } from "~/lib/types";
 
 export function DraftAssistant({ onChoose, disabled }: {
   onChoose: (draft: EmailDraft) => void;
@@ -8,7 +8,6 @@ export function DraftAssistant({ onChoose, disabled }: {
 }) {
   const [description, setDescription] = useState("");
   const [drafts, setDrafts] = useState<EmailDraft[]>([]);
-  const [source, setSource] = useState<"ai" | "template">("ai");
   const [usage, setUsage] = useState<{ remaining: number; limit: number; resetsAt: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -33,11 +32,10 @@ export function DraftAssistant({ onChoose, disabled }: {
       });
       const result = await response.json();
       if (expectedUserId !== userId()) throw new Error("Account changed. Please reload.");
+      if (result.usage) setUsage(result.usage);
       if (!response.ok) throw new Error(result.error || "Could not generate drafts. Please try again.");
       if (!Array.isArray(result.drafts) || result.drafts.length !== 3) throw new Error("Incomplete drafts. Please try again.");
       setDrafts(result.drafts);
-      setSource(result.source);
-      if (result.usage) setUsage(result.usage);
       setNotice(result.message);
     } catch (error) {
       if (!request.signal.aborted) setError(error instanceof Error && error.name !== "TimeoutError"
@@ -59,22 +57,15 @@ export function DraftAssistant({ onChoose, disabled }: {
         value={description} disabled={loading || disabled}
         onChange={(event) => setDescription(event.target.value)}
         aria-describedby="draft-help" placeholder="Invite local shop owners to try our inventory app. Mention the free 14-day trial and ask if they'd like a demo." />
-      <p id="draft-help" className="hint">Either way, describe your message: who it is for, the key points, and what you want the reader to do. Free templates build the email on your device — a subject line, an opening sentence, your points, and a closing — and add no facts of their own. Only AI drafting shares your text with OpenAI.</p>
+      <p id="draft-help" className="hint">Say who it is for, the key points, and what you want the reader to do. Your description is sent to Google Gemini; contacts and SMTP details are not.</p>
       <button type="button" className="btn-secondary min-h-11" disabled={loading || disabled || !description.trim()}
         onClick={generate}>{loading ? "Drafting three options…" : "Generate 3 AI drafts"}</button>
-      <button type="button" className="btn-secondary min-h-11 sm:ml-2" disabled={loading || disabled || !description.trim()}
-        onClick={() => {
-          setDrafts(generateTemplateDrafts(description));
-          setSource("template");
-          setError("");
-          setNotice("Three free drafts are ready, written from your text on this device. Review the wording before sending. No AI credits used.");
-        }}>Use free templates</button>
       {usage && <p className="hint">{usage.remaining} of {usage.limit} AI credits remaining today. One credit generates three drafts. Resets at midnight UTC.</p>}
       {error && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{error}</p>}
       <p role="status" className="hint">{loading ? "Writing your drafts. This may take a few moments." : notice}</p>
       {drafts.length > 0 && (
         <div className="space-y-3" aria-label="Draft options" aria-busy={loading}>
-          <p className="text-sm font-medium">{source === "template" ? "Template drafts · no AI" : "AI drafts"}</p>
+          <p className="text-sm font-medium">AI drafts</p>
           <p className="hint">Choosing a draft replaces the subject and body below. Your footer stays in place.</p>
           {drafts.map((draft, index) => (
             <article key={index} className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">

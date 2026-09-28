@@ -53,15 +53,15 @@ Keep the tab open while sending. Each recipient's rendered email and result is s
 
 ## Message drafts and AI allowances
 
-**Free templates work immediately without an API key or network request.** Describe your message — the key points and what the reader should do — then choose **Use free templates**. The local script in `app/lib/draft-templates.ts` composes three versions: it writes an opening sentence around your first point, lists the rest as prose or bullets, and turns an instruction like "ask if they'd like a demo" into a closing sentence addressed to the reader. Brief-style notes to yourself ("mention the free trial") are folded into the email rather than sent as written. It is rule-based, so it rearranges and frames your points but never invents a fact, name, offer, or link the way an AI model can.
+Describe your message — who it is for, the key points, and what the reader should do — then choose **Generate 3 AI drafts** to get Concise, Friendly and Formal versions from Google Gemini. AI drafting requires `GEMINI_API_KEY`.
 
-For local AI drafting, set `OPENAI_API_KEY` in `.env` and restart `npm run dev`. With `AI_DRAFT_USAGE_STORE=sqlite`, the app uses persistent SQLite counters in `.local/draft-usage.sqlite`. This enforces the same daily limits on your machine and survives restarts. Node may print an experimental SQLite warning.
+For local AI drafting, set `GEMINI_API_KEY` in `.env` (create one at [Google AI Studio](https://aistudio.google.com/apikey)) and restart `npm run dev`. With `AI_DRAFT_USAGE_STORE=sqlite`, the app uses persistent SQLite counters in `.local/draft-usage.sqlite`. This enforces the same daily limits on your machine and survives restarts. Node may print an experimental SQLite warning.
 
 For production on one server, put the SQLite file on a writable persistent disk and configure:
 
 ```dotenv
-OPENAI_API_KEY=your-key
-OPENAI_DRAFT_MODEL=gpt-4o-mini
+GEMINI_API_KEY=your-key
+GEMINI_DRAFT_MODEL=gemini-3.8-flash
 AI_DRAFT_USAGE_STORE=sqlite
 AI_DRAFT_LOCAL_DB=/var/lib/email-sender/draft-usage.sqlite
 AI_DRAFTS_PER_USER_PER_DAY=5
@@ -74,11 +74,11 @@ Keep these variables server-side, with no `VITE_` prefix. Use a separate databas
 
 One credit allows one AI request generating three options. The default allowances are **5 requests per Clerk user per UTC day** and **100 across the app per UTC day**. They reset at midnight UTC. Set either allowance to `0` to disable paid generation. Limits are generation credits, not exact token balances or dollar budgets: each request accepts at most 4,000 description characters and allows at most 2,500 output tokens. Input and output token prices vary with the configured model. The UI shows remaining user credits after an AI request.
 
-The authenticated server atomically reserves both counters before contacting OpenAI. SQLite shares limits across requests and processes on the same server; Redis shares them across servers. Failed and timed-out AI attempts retain their credit because the provider may already have billed them. Users cannot choose another account's counter. Multiple accounts still share the app-wide cap.
+The authenticated server atomically reserves both counters before contacting Gemini. SQLite shares limits across requests and processes on the same server; Redis shares them across servers. Failed and timed-out AI attempts retain their credit because the provider may already have billed them. Users cannot choose another account's counter. Multiple accounts still share the app-wide cap.
 
-If an allowance is exhausted, the API key is missing, the usage database is unconfigured/unavailable, or AI generation fails, the endpoint returns clearly labeled free templates. It never makes an unmetered AI request when usage cannot be verified. Production SQLite requires an explicit database path; storage failures never trigger a fresh in-memory allowance. Network errors reaching the app leave the **Use free templates** button available locally.
+If an allowance is exhausted, the API key is missing, the usage database is unconfigured/unavailable, or AI generation fails, the endpoint returns an error explaining why and no drafts. It never makes an unmetered AI request when usage cannot be verified. Production SQLite requires an explicit database path; storage failures never trigger a fresh in-memory allowance. Users can always write the subject and body by hand.
 
-Choosing a draft fills the editable subject and body and preserves the footer. Generating or choosing a draft never sends email. Only the description goes to OpenAI, not contacts or SMTP credentials. The integration uses [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs) with response storage disabled.
+Choosing a draft fills the editable subject and body and preserves the footer. Generating or choosing a draft never sends email. Only the description goes to Google Gemini, not contacts or SMTP credentials. The integration uses Gemini [structured output](https://ai.google.dev/gemini-api/docs/structured-output) with a JSON schema. On Gemini's free tier, Google may use prompts to improve its products; use a paid (billing-enabled) key if descriptions may contain confidential information.
 
 ## Commands
 
